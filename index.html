@@ -62,7 +62,7 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .privacy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 /* Pilihan alat */
-.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .tab {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   font: 500 13px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 12px;
@@ -187,6 +187,16 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 .status { font-size: 14px; min-height: 1.4em; margin-top: -8px; }
 .status.ok { color: var(--ok); }
 .status.err { color: var(--danger); }
+.est { font-size: 13.5px; color: var(--muted); min-height: 1.4em; margin-top: -10px; }
+.est strong { color: var(--ink); font-weight: 600; }
+.btn.share { margin-top: 4px; align-self: flex-start; }
+.prog { display: flex; align-items: center; gap: 12px; margin: 0 0 6px; }
+.prog .track { flex: 1; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.prog .bar { height: 100%; width: 0; border-radius: 99px; background: var(--accent); transition: width .25s ease; }
+.prog.ind .bar { width: 35%; animation: prog-slide 1.1s ease-in-out infinite; }
+.prog .btn { flex: none; min-height: 36px; padding: 6px 16px; font-size: 13px; border-radius: 10px; box-shadow: none; }
+@keyframes prog-slide { from { margin-left: -35%; } to { margin-left: 100%; } }
+@media (prefers-reduced-motion: reduce) { .prog.ind .bar { animation: none; width: 100%; opacity: .45; } }
 .status.busy { color: var(--muted); }
 footer { text-align: center; color: var(--muted); font-size: 12px; }
 
@@ -219,6 +229,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>Pisah</button>
     <button class="tab" role="tab" id="tab-rotate" aria-controls="panel-rotate" aria-selected="false" data-tab="rotate">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Putar</button>
+    <button class="tab" role="tab" id="tab-compress" aria-controls="panel-compress" aria-selected="false" data-tab="compress">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>Kompres</button>
     <button class="tab" role="tab" id="tab-img" aria-controls="panel-img" aria-selected="false" data-tab="img">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>Gambar</button>
   </div>
@@ -289,6 +301,27 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <div class="status" id="st-rotate" role="status" aria-live="polite"></div>
   </section>
 
+  <section class="panel" id="panel-compress" role="tabpanel" aria-labelledby="tab-compress" hidden>
+    <h2>Kompres PDF</h2>
+    <p class="lead">Perkecil ukuran PDF supaya mudah dikirim lewat WhatsApp atau email.</p>
+    <div class="step"><i>1</i>Pilih file</div>
+    <label class="drop" data-drop="compress"><strong>Pilih satu PDF atau seret ke sini</strong><span>File lama akan diganti</span><input type="file" id="in-compress" accept="application/pdf,.pdf"></label>
+    <ul class="list" id="list-compress"></ul>
+    <div class="step"><i>2</i>Pilih tingkat kompres</div>
+    <div class="fields">
+      <div class="field"><label for="cmp-q">Kualitas dan ukuran file</label>
+        <select id="cmp-q"><option value="high">Tinggi (150 dpi, JPG 80%)</option><option value="bal" selected>Seimbang (110 dpi, JPG 70%)</option><option value="small">Kecil (72 dpi, JPG 55%)</option></select>
+        <span class="hint">Halaman diubah menjadi gambar, jadi teks tidak bisa lagi dipilih, disalin, atau dicari.</span></div>
+    </div>
+    <div class="est" id="est-compress" aria-live="polite"></div>
+    <div class="step"><i>3</i>Nama file dan unduh</div>
+    <div class="fields">
+      <div class="field"><label for="name-compress">Nama file</label><input type="text" id="name-compress" placeholder="Otomatis dari nama file" autocomplete="off" spellcheck="false"><span class="hint">.pdf ditambahkan otomatis.</span></div>
+    </div>
+    <div class="actions"><button class="btn" id="go-compress" type="button">Kompres dan simpan</button></div>
+    <div class="status" id="st-compress" role="status" aria-live="polite"></div>
+  </section>
+
   <section class="panel" id="panel-img" role="tabpanel" aria-labelledby="tab-img" hidden>
     <h2>Gambar ke PDF</h2>
     <p class="lead">Satu gambar jadi satu halaman, sesuai urutan daftar.</p>
@@ -356,7 +389,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   }
   var PDFDocument = PDFLib.PDFDocument, degrees = PDFLib.degrees, StandardFonts = PDFLib.StandardFonts, rgb = PDFLib.rgb;
   var $ = function (s) { return document.querySelector(s); };
-  var S = { merge: [], split: null, rotate: null, img: [], ranges: [{ from: "1", to: "2" }] };
+  var KEYS = ["merge", "split", "rotate", "compress", "img"];
+  var S = { merge: [], split: null, rotate: null, compress: null, img: [], ranges: [{ from: "1", to: "2" }] };
   var uid = 0, busy = false, MAXT = 1;
   if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -515,19 +549,27 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   $("#v-dl").onclick = async function () {
     var it = V.it; if (!it || !it.preview) return;
     var dl = $("#v-dl"), msg = $("#v-msg");
-    dl.disabled = true; msg.hidden = false; msg.className = "v-msg busy"; msg.textContent = "Membuat PDF kualitas penuh…";
+    if (dlBuilding) { if (CUR) CUR.cancelled = true; dl.disabled = true; msg.textContent = "Membatalkan…"; return; }
+    var label = dl.textContent;
+    dlBuilding = true; CUR = { key: "img", cancelled: false };
+    dl.textContent = "Batal"; msg.hidden = false; msg.className = "v-msg busy"; msg.textContent = "Membuat PDF kualitas penuh…";
     try {
+      resetShare("img");
       var r = await buildImgPdf(false, function (i, n) { msg.textContent = "Membuat PDF kualitas penuh… gambar " + i + " dari " + n; });
       var ok = await saveFile("img", it.name, r.bytes, r.failed.length > 0);
-      dlg.close();
+      dlg.close(); showShare("img");
       if (ok && r.failed.length) status("img", "Selesai. " + it.name + " (" + fmtSize(r.bytes.length) + ") diunduh, tetapi " + r.failed.length + " gambar dilewati karena tidak terbaca: " + failNote(r.failed) + ".", "err");
     } catch (e) {
-      msg.className = "v-msg"; msg.textContent = (e && e.message) || "Gagal membuat PDF."; dl.disabled = false;
+      if (e && e.name === "Cancel") { msg.className = "v-msg"; msg.textContent = "Dibatalkan."; }
+      else { msg.className = "v-msg"; msg.textContent = (e && e.message) || "Gagal membuat PDF."; }
     }
+    dlBuilding = false; CUR = null; endProgress("img"); dl.disabled = false; dl.textContent = label;
   };
+  var dlBuilding = false;
   dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener("close", function () {
     if (V.it && !V.list) { V.it.lastPage = V.i; if (V.it.preview) lastImgPage = V.i; }
+    if (dlBuilding && CUR) CUR.cancelled = true;
     V.token++; if (V.io) { V.io.disconnect(); V.io = null; }
     if (V.docP) { V.docP.then(function (d) { d.destroy(); }, function () {}); V.docP = null; }
     V.items = []; vbody.textContent = "";
@@ -579,6 +621,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   async function saveFile(key, name, bytes, quiet) {
     try {
       var blob = new Blob([bytes], { type: "application/pdf" });
+      (LAST[key] = LAST[key] || []).push({ name: name, blob: blob });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url; a.download = name;
@@ -593,13 +636,78 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   }
 
   function setBusy(v) { busy = v; refresh(); }
+  /* ---------- progres dan pembatalan ---------- */
+  var CUR = null;
+  function checkCancel() {
+    if (CUR && CUR.cancelled) { var e = new Error("Dibatalkan."); e.name = "Cancel"; throw e; }
+  }
+  function setProgress(key, frac) {
+    var p = $("#prog-" + key); if (!p) return;
+    p.hidden = false;
+    if (frac == null) p.classList.add("ind");
+    else { p.classList.remove("ind"); p.querySelector(".bar").style.width = Math.max(0, Math.min(100, Math.round(frac * 100))) + "%"; }
+  }
+  function endProgress(key) {
+    var p = $("#prog-" + key); if (!p) return;
+    p.hidden = true; p.classList.remove("ind"); p.querySelector(".bar").style.width = "0";
+    var c = p.querySelector(".btn"); c.disabled = false; c.textContent = "Batal";
+  }
+  /* satu langkah dari n: cek batal, geser bar, tulis status */
+  function step(key, i, n, text) {
+    checkCancel();
+    setProgress(key, n > 1 ? (i - 1) / n : null);
+    status(key, text, "busy");
+  }
+  KEYS.forEach(function (key) {
+    var st = $("#st-" + key); if (!st) return;
+    var p = el("div", "prog"), tr = el("div", "track"), bar = el("div", "bar"), c = el("button", "btn ghost", "Batal");
+    p.id = "prog-" + key; p.hidden = true; c.type = "button"; tr.appendChild(bar); p.appendChild(tr); p.appendChild(c);
+    st.parentNode.insertBefore(p, st.nextSibling);
+    c.onclick = function () {
+      if (!CUR || CUR.key !== key) return;
+      CUR.cancelled = true; c.disabled = true; c.textContent = "Membatalkan…";
+      status(key, "Membatalkan setelah langkah yang sedang berjalan selesai…", "busy");
+    };
+  });
   async function run(key, fn) {
     if (busy) return;
-    setBusy(true); status(key, "Memproses…", "busy");
+    setBusy(true); CUR = { key: key, cancelled: false };
+    status(key, "Memproses…", "busy"); resetShare(key); setProgress(key, null);
     try { await fn(); }
-    catch (e) { status(key, e && e.message ? e.message : "Terjadi kesalahan saat memproses.", "err"); }
-    setBusy(false);
+    catch (e) {
+      if (e && e.name === "Cancel") {
+        var done = (LAST[key] || []).length;
+        status(key, done ? "Dibatalkan. " + done + " file sudah terunduh sebelum dibatalkan." : "Dibatalkan. Tidak ada file yang dibuat.", "");
+      } else status(key, e && e.message ? e.message : "Terjadi kesalahan saat memproses.", "err");
+    }
+    CUR = null; endProgress(key); setBusy(false); showShare(key);
   }
+
+  /* ---------- Bagikan lewat menu bagikan perangkat (Web Share) ---------- */
+  var LAST = {};
+  function canShareFiles(files) {
+    try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files })); } catch (e) { return false; }
+  }
+  var SHARE_OK = canShareFiles([new File([new Blob(["%PDF"])], "a.pdf", { type: "application/pdf" })]);
+  function toFiles(list) { return list.map(function (f) { return new File([f.blob], f.name, { type: "application/pdf" }); }); }
+  function resetShare(key) { LAST[key] = []; var b = $("#share-" + key); if (b) b.hidden = true; }
+  function showShare(key) {
+    var b = $("#share-" + key), list = LAST[key] || [];
+    if (!b) return;
+    b.hidden = !(SHARE_OK && list.length && canShareFiles(toFiles(list)));
+    if (!b.hidden) b.textContent = list.length > 1 ? "Bagikan " + list.length + " file" : "Bagikan";
+  }
+  KEYS.forEach(function (key) {
+    var st = $("#st-" + key); if (!st) return;
+    var b = el("button", "btn ghost share", "Bagikan");
+    b.id = "share-" + key; b.type = "button"; b.hidden = true;
+    st.parentNode.insertBefore(b, st.nextSibling);
+    b.onclick = async function () {
+      var list = LAST[key] || []; if (!list.length) return;
+      try { await navigator.share({ files: toFiles(list), title: list[0].name }); }
+      catch (e) { if (!e || e.name !== "AbortError") status(key, "Tidak bisa membuka menu bagikan. File sudah ada di folder unduhan.", "err"); }
+    };
+  });
 
   /* ---------- pratinjau per rentang di panel Pisah ---------- */
   var PVd = { it: null, p: null };
@@ -682,9 +790,11 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     $("#clear-merge").disabled = busy || !S.merge.length;
     $("#go-split").disabled = busy || !S.split;
     $("#go-rotate").disabled = busy || !S.rotate;
+    $("#go-compress").disabled = busy || !S.compress;
     $("#go-img").disabled = busy || !S.img.length;
     $("#prev-img").disabled = busy || !S.img.length;
     $("#clear-img").disabled = busy || !S.img.length;
+    scheduleEst();
   }
   function renderRanges() {
     var box = $("#ranges"); box.textContent = "";
@@ -723,7 +833,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   function redraw() {
     renderRanges();
     renderList("merge", S.merge, "Belum ada file. Pilih minimal dua PDF.");
-    renderSingle("split"); renderSingle("rotate");
+    renderSingle("split"); renderSingle("rotate"); renderSingle("compress");
     renderList("img", S.img, "Belum ada gambar. Pilih satu atau lebih gambar.");
     refresh();
   }
@@ -732,7 +842,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   document.querySelectorAll(".tab").forEach(function (t) {
     t.addEventListener("click", function () {
       document.querySelectorAll(".tab").forEach(function (x) { x.setAttribute("aria-selected", x === t ? "true" : "false"); });
-      ["merge", "split", "rotate", "img"].forEach(function (k) { $("#panel-" + k).hidden = k !== t.dataset.tab; });
+      KEYS.forEach(function (k) { $("#panel-" + k).hidden = k !== t.dataset.tab; });
     });
   });
 
@@ -758,7 +868,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     if (n && !skipped) status("img", "");
     redraw();
   }
-  ["merge", "split", "rotate", "img"].forEach(function (key) {
+  KEYS.forEach(function (key) {
     var input = $("#in-" + key), drop = document.querySelector("[data-drop=" + key + "]");
     input.addEventListener("change", function () {
       var files = Array.from(input.files); input.value = "";
@@ -784,11 +894,16 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   $("#go-merge").onclick = function () {
     run("merge", async function () {
       var out = await PDFDocument.create();
-      for (var i = 0; i < S.merge.length; i++) {
+      var nm = S.merge.length;
+      for (var i = 0; i < nm; i++) {
+        step("merge", i + 1, nm, "Menggabungkan file " + (i + 1) + " dari " + nm + "…");
+        await new Promise(function (r) { setTimeout(r, 0); });
         var src = await PDFDocument.load(S.merge[i].bytes, { ignoreEncryption: true });
         var pages = await out.copyPages(src, src.getPageIndices());
         pages.forEach(function (p) { out.addPage(p); });
       }
+      checkCancel(); setProgress("merge", null); status("merge", "Menyimpan file…", "busy");
+      await new Promise(function (r) { setTimeout(r, 0); });
       var bytes = await out.save();
       await saveFile("merge", outName("merge", "gabungan") + ".pdf", bytes);
     });
@@ -821,6 +936,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       if (sep) {
         var used = {}, name = outName("split", base(it.name));
         for (var g = 0; g < groups.length; g++) {
+          step("split", g + 1, groups.length, "Membuat file " + (g + 1) + " dari " + groups.length + "…");
           var gi = groups[g], lab = "hlm" + (gi[0] + 1) + (gi.length > 1 ? "-" + (gi[gi.length - 1] + 1) : "");
           var fn = name + "-" + lab; used[fn] = (used[fn] || 0) + 1; if (used[fn] > 1) fn += "-" + used[fn];
           await saveFile("split", fn + ".pdf", await make(gi), true);
@@ -845,6 +961,84 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       idx.forEach(function (i) { var p = doc.getPage(i); p.setRotation(degrees((p.getRotation().angle + angle) % 360)); });
       var bytes = await doc.save();
       await saveFile("rotate", outName("rotate", base(it.name) + "-diputar") + ".pdf", bytes);
+    });
+  };
+  /* ---------- Kompres PDF: render ulang tiap halaman jadi JPG ---------- */
+  var CQ = { high: { dpi: 150, q: 0.8 }, bal: { dpi: 110, q: 0.7 }, small: { dpi: 72, q: 0.55 } }, CMP_CAP = 3000;
+  function openPdfjs(it) {
+    if (!window.pdfjsLib) throw new Error("Kompres butuh pustaka pdf.js yang gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+    return pdfjsLib.getDocument({ data: it.bytes.slice(), verbosity: 0 });
+  }
+  async function pageJpeg(page, cfg) {
+    var base = page.getViewport({ scale: 1 }), sc = cfg.dpi / 72, longest = Math.max(base.width, base.height) * sc;
+    if (longest > CMP_CAP) sc *= CMP_CAP / longest;
+    var vp = page.getViewport({ scale: sc }), cv = document.createElement("canvas");
+    cv.width = Math.max(1, Math.round(vp.width)); cv.height = Math.max(1, Math.round(vp.height));
+    var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+    await page.render({ canvasContext: cx, viewport: vp }).promise;
+    var bytes = await canvasBytes(cv, "image/jpeg", cfg.q);
+    cv.width = cv.height = 0; page.cleanup();
+    return { bytes: bytes, w: base.width, h: base.height };
+  }
+  var estTimer = null, estTk = 0;
+  function showEst() {
+    var box = $("#est-compress"), it = S.compress, k = $("#cmp-q").value;
+    if (!it) { box.textContent = ""; return true; }
+    if (it.est && it.est[k] != null) {
+      var e = it.est[k]; box.textContent = "";
+      box.appendChild(document.createTextNode("Perkiraan hasil: "));
+      box.appendChild(el("strong", "", "± " + fmtSize(e)));
+      box.appendChild(document.createTextNode(" (asli " + fmtSize(it.size) + ")." + (e >= it.size * 0.95 ? " Kemungkinan tidak lebih kecil dari aslinya; coba pilihan Kecil." : "")));
+      return true;
+    }
+    box.textContent = "Menghitung perkiraan…"; return false;
+  }
+  function scheduleEst() {
+    clearTimeout(estTimer);
+    if (showEst() || busy) return;
+    var it = S.compress, k = $("#cmp-q").value;
+    estTimer = setTimeout(function () { computeEst(it, k); }, 300);
+  }
+  async function computeEst(it, k) {
+    var tk = ++estTk, box = $("#est-compress"), pdf = null;
+    try {
+      var loading = openPdfjs(it); pdf = await loading.promise;
+      var n = pdf.numPages, idx = Array.from(new Set([1, Math.ceil(n / 2), n])), sum = 0;
+      for (var j = 0; j < idx.length; j++) {
+        if (tk !== estTk || S.compress !== it || busy) return;
+        sum += (await pageJpeg(await pdf.getPage(idx[j]), CQ[k])).bytes.length;
+      }
+      (it.est = it.est || {})[k] = Math.round(sum / idx.length * n + 4096);
+      if (S.compress === it && $("#cmp-q").value === k) showEst();
+    } catch (e) { if (tk === estTk && S.compress === it) box.textContent = "Perkiraan ukuran tidak tersedia untuk file ini."; }
+    finally { if (pdf) pdf.destroy(); }
+  }
+  $("#cmp-q").addEventListener("change", scheduleEst);
+  $("#go-compress").onclick = function () {
+    run("compress", async function () {
+      var it = S.compress, cfg = CQ[$("#cmp-q").value] || CQ.bal, pdf = null;
+      var loading = openPdfjs(it);
+      try {
+        pdf = await loading.promise;
+        var n = pdf.numPages, out = await PDFDocument.create();
+        for (var i = 1; i <= n; i++) {
+          step("compress", i, n, "Memproses halaman " + i + " dari " + n + "…");
+          await new Promise(function (r) { setTimeout(r, 0); });
+          var r = await pageJpeg(await pdf.getPage(i), cfg);
+          var img = await out.embedJpg(r.bytes), pg = out.addPage([r.w, r.h]);
+          pg.drawImage(img, { x: 0, y: 0, width: r.w, height: r.h });
+        }
+        checkCancel(); setProgress("compress", null); status("compress", "Menyimpan file…", "busy");
+        await new Promise(function (r2) { setTimeout(r2, 0); });
+        var bytes = await out.save();
+        if (bytes.length >= it.size * 0.98) {
+          status("compress", "Hasilnya tidak lebih kecil (" + fmtSize(bytes.length) + " dibanding " + fmtSize(it.size) + "), jadi tidak disimpan. Coba pilihan Kecil.", "err");
+          return;
+        }
+        var name = outName("compress", base(it.name) + "-kompres") + ".pdf";
+        await saveFile("compress", name, bytes, true);
+        status("compress", "Selesai. " + name + " diunduh: " + fmtSize(it.size) + " → " + fmtSize(bytes.length) + " (hemat " + Math.round((1 - bytes.length / it.size) * 100) + "%).", "ok");
+      } finally { if (pdf) pdf.destroy(); }
     });
   };
   var QUAL = { bal: { max: 2000, q: 0.85, f: 1.5 }, small: { max: 1400, q: 0.7, f: 0.85 } };
@@ -1005,6 +1199,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     var failed = [], est = 2048;
     for (var i = 0; i < S.img.length; i++) {
       var it = S.img[i];
+      if (CUR && CUR.key === "img") { checkCancel(); setProgress("img", S.img.length > 1 ? i / S.img.length : null); }
       if (progress) progress(i + 1, S.img.length);
       await new Promise(function (r) { setTimeout(r, 0); });
       try {
@@ -1016,6 +1211,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
         if (forPreview) await placeholderPage(doc, size, it.name, e.message);
       }
     }
+    if (CUR && CUR.key === "img") { checkCancel(); setProgress("img", null); }
     renderList("img", S.img, "Belum ada gambar. Pilih satu atau lebih gambar.");
     if (!forPreview && failed.length === S.img.length) throw new Error("Tidak ada gambar yang bisa dibaca. " + failed[0].name + ": " + failed[0].msg + ".");
     var first = doc.getPage(0).getSize();
