@@ -62,7 +62,7 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .privacy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 /* Pilihan alat */
-.tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .tab {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   font: 500 13px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 12px;
@@ -203,6 +203,16 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 .pk[aria-pressed="true"] .ck { background: var(--accent); }
 .pk[aria-pressed="true"] .ck::after { content: "✓"; }
 .pk:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ed-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.ed-bar .btn { flex: none; min-height: 38px; padding: 6px 12px; font-size: 13px; border-radius: 10px; box-shadow: none; }
+.ed-info { font-size: 13.5px; color: var(--muted); }
+.ed-wrap { max-height: 62vh; }
+.ed .pk img { opacity: 1; }
+.ed .pk[draggable="true"] { cursor: grab; }
+.ed .pk.dragging { opacity: .4; }
+.pk.blank { background: #fff; border-style: dashed; }
+.pk .bl { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: #667085; }
+.pk img.rot { transition: transform .2s; }
 .est { font-size: 13.5px; color: var(--muted); min-height: 1.4em; margin-top: -10px; }
 .est strong { color: var(--ink); font-weight: 600; }
 .btn.share { margin-top: 4px; align-self: flex-start; }
@@ -222,7 +232,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   .row { gap: 12px; padding: 10px; }
   .row .thumb { width: 72px; height: 72px; }
   .thumb-cell.first { width: 80px; }
-  .tabs { grid-template-columns: repeat(3, 1fr); }
+  .tabs { grid-template-columns: repeat(4, 1fr); }
   .tab { font-size: 12px; padding: 9px 2px; }
   .btn { flex: 1; }
   .v-body { padding: 12px; gap: 12px; }
@@ -252,6 +262,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>Gambar</button>
     <button class="tab" role="tab" id="tab-toimg" aria-controls="panel-toimg" aria-selected="false" data-tab="toimg">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><path d="m8 18 3-3.5 2 2 2-2.5 1.5 2"/></svg>Ke gambar</button>
+    <button class="tab" role="tab" id="tab-edit" aria-controls="panel-edit" aria-selected="false" data-tab="edit">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>Susun</button>
   </div>
 
   <section class="panel" id="panel-merge" role="tabpanel" aria-labelledby="tab-merge">
@@ -395,6 +407,36 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <div class="status" id="st-toimg" role="status" aria-live="polite"></div>
   </section>
 
+  <section class="panel" id="panel-edit" role="tabpanel" aria-labelledby="tab-edit" hidden>
+    <h2>Susun halaman</h2>
+    <p class="lead">Ubah urutan, putar, hapus, gandakan, atau sisipkan halaman kosong dalam satu layar.</p>
+    <div class="step"><i>1</i>Pilih file</div>
+    <label class="drop" data-drop="edit"><strong>Pilih satu PDF atau seret ke sini</strong><span>File lama akan diganti</span><input type="file" id="in-edit" accept="application/pdf,.pdf"></label>
+    <ul class="list" id="list-edit"></ul>
+    <div class="step"><i>2</i>Ketuk halaman untuk memilih, lalu atur</div>
+    <div class="ed-bar" id="edbar" hidden>
+      <button class="btn ghost" id="ed-left" type="button" aria-label="Pindah ke depan">◀</button>
+      <button class="btn ghost" id="ed-right" type="button" aria-label="Pindah ke belakang">▶</button>
+      <button class="btn ghost" id="ed-rl" type="button" aria-label="Putar ke kiri">↺</button>
+      <button class="btn ghost" id="ed-rr" type="button" aria-label="Putar ke kanan">↻</button>
+      <button class="btn ghost" id="ed-del" type="button">Hapus</button>
+      <button class="btn ghost" id="ed-dup" type="button">Gandakan</button>
+      <button class="btn ghost" id="ed-blank" type="button">+ Kosong</button>
+      <button class="btn ghost" id="ed-sel" type="button">Pilih semua</button>
+      <button class="btn ghost" id="ed-undo" type="button">Urungkan</button>
+      <button class="btn ghost" id="ed-reset" type="button">Atur ulang</button>
+    </div>
+    <div class="ed-info" id="ed-info" aria-live="polite"></div>
+    <div class="pick-wrap ed-wrap" id="edwrap" hidden><div class="pick ed" id="ed-grid"></div></div>
+    <label class="pick-size" id="edsize" hidden>Ukuran pratinjau <input type="range" id="ed-size" min="64" max="240" step="8" value="92"></label>
+    <div class="step"><i>3</i>Nama file dan unduh</div>
+    <div class="fields">
+      <div class="field"><label for="name-edit">Nama file</label><input type="text" id="name-edit" placeholder="Otomatis dari nama file" autocomplete="off" spellcheck="false"><span class="hint">.pdf ditambahkan otomatis.</span></div>
+    </div>
+    <div class="actions"><button class="btn" id="go-edit" type="button">Simpan PDF</button></div>
+    <div class="status" id="st-edit" role="status" aria-live="polite"></div>
+  </section>
+
   <dialog id="viewer" aria-label="Pratinjau halaman">
   <div class="v-bar">
     <button class="icon-btn" id="v-prev" type="button" aria-label="Halaman sebelumnya">←</button>
@@ -437,8 +479,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   }
   var PDFDocument = PDFLib.PDFDocument, degrees = PDFLib.degrees, StandardFonts = PDFLib.StandardFonts, rgb = PDFLib.rgb;
   var $ = function (s) { return document.querySelector(s); };
-  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg"];
-  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, img: [], ranges: [{ from: "1", to: "2" }] };
+  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg", "edit"];
+  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, edit: null, img: [], ranges: [{ from: "1", to: "2" }] };
   var uid = 0, busy = false, MAXT = 1;
   if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -842,6 +884,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     $("#go-split").disabled = busy || !S.split;
     $("#go-rotate").disabled = busy || !S.rotate;
     $("#go-compress").disabled = busy || !S.compress;
+    updateEditUI();
     $("#go-toimg").disabled = busy || !S.toimg || !S.toimg.sel || !S.toimg.sel.size;
     $("#go-img").disabled = busy || !S.img.length;
     $("#prev-img").disabled = busy || !S.img.length;
@@ -885,7 +928,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   function redraw() {
     renderRanges();
     renderList("merge", S.merge, "Belum ada file. Pilih minimal dua PDF.");
-    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick();
+    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick(); renderSingle("edit"); renderEdit();
     renderList("img", S.img, "Belum ada gambar. Pilih satu atau lebih gambar.");
     refresh();
   }
@@ -1129,36 +1172,40 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   }
 
   var PICK = { it: null, doc: null, io: null, q: Promise.resolve(), tk: 0 };
-  function disposePick() {
-    if (PICK.io) { PICK.io.disconnect(); PICK.io = null; }
-    if (PICK.doc) { PICK.doc.then(function (d) { d.destroy(); }, function () {}); PICK.doc = null; }
-    PICK.it = null; PICK.tk++;
+  function disposeCtx(c) {
+    if (c.io) { c.io.disconnect(); c.io = null; }
+    if (c.doc) { c.doc.then(function (d) { d.destroy(); }, function () {}); c.doc = null; }
+    c.it = null; c.tk++;
   }
+  function disposePick() { disposeCtx(PICK); }
   function updatePick() {
     var it = S.toimg; if (!it) return;
     $("#cnt-toimg").textContent = it.sel.size + " dari " + it.pages + " halaman dipilih";
     refresh();
   }
-  function loadPickThumb(btn, p, it, tk) {
+  /* satu thumbnail halaman asli p (mulai 1), dimuat berurutan; hasilnya dicache di it.pk */
+  function loadThumb(c, btn, p, it, tk) {
     if (btn._loaded) return; btn._loaded = true;
-    PICK.q = PICK.q.then(async function () {
-      if (PICK.tk !== tk) return;
+    c.q = c.q.then(async function () {
+      if (c.tk !== tk) return;
       try {
         if (!it.pk) it.pk = {};
         var url = it.pk[p];
         if (!url) {
-          if (!PICK.doc) PICK.doc = openPdfjs(it).promise;
-          var page = await (await PICK.doc).getPage(p), w0 = page.getViewport({ scale: 1 }).width, vp = page.getViewport({ scale: 260 / w0 });
+          if (!c.doc) c.doc = openPdfjs(it).promise;
+          var page = await (await c.doc).getPage(p), w0 = page.getViewport({ scale: 1 }).width, vp = page.getViewport({ scale: 260 / w0 });
           var cv = document.createElement("canvas"); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
           var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
           await page.render({ canvasContext: cx, viewport: vp }).promise;
           url = cv.toDataURL("image/jpeg", 0.7); it.pk[p] = url; page.cleanup();
         }
-        if (PICK.tk !== tk) return;
+        if (c.tk !== tk) return;
         var im = document.createElement("img"); im.src = url; im.alt = ""; btn.insertBefore(im, btn.firstChild);
+        if (btn._onimg) btn._onimg(im);
       } catch (e) { btn._loaded = false; }
     });
   }
+  function loadPickThumb(btn, p, it, tk) { loadThumb(PICK, btn, p, it, tk); }
   function renderPick() {
     var it = S.toimg, grid = $("#pick-toimg");
     if (PICK.it === it && (it || !grid.firstChild)) return;
@@ -1193,16 +1240,172 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     updatePick();
   }
   (function () {
-    var rg = $("#pk-size"), saved = null;
+    var sliders = [$("#pk-size"), $("#ed-size")], grids = [$("#pick-toimg"), $("#ed-grid")], saved = null;
     try { saved = parseInt(localStorage.getItem("folio-pk"), 10); } catch (e) {}
-    if (saved >= 64 && saved <= 240) rg.value = saved;
-    var apply = function () { $("#pick-toimg").style.setProperty("--pk", rg.value + "px"); };
-    rg.addEventListener("input", apply);
-    rg.addEventListener("change", function () { try { localStorage.setItem("folio-pk", rg.value); } catch (e) {} });
-    apply();
+    var apply = function (v) { sliders.forEach(function (r) { r.value = v; }); grids.forEach(function (g) { g.style.setProperty("--pk", v + "px"); }); };
+    if (saved >= 64 && saved <= 240) apply(saved); else apply(sliders[0].value);
+    sliders.forEach(function (rg) {
+      rg.addEventListener("input", function () { apply(rg.value); });
+      rg.addEventListener("change", function () { try { localStorage.setItem("folio-pk", rg.value); } catch (e) {} });
+    });
   })();
   $("#all-toimg").onclick = function () { pickAll(true); };
   $("#none-toimg").onclick = function () { pickAll(false); };
+
+  /* ---------- Susun halaman ---------- */
+  var EDT = { it: null, doc: null, io: null, q: Promise.resolve(), tk: 0, sel: new Set() };
+  function edState(it) {
+    if (!it.ed) { var l = []; for (var i = 0; i < it.pages; i++) l.push({ id: ++uid, src: i, rot: 0 }); it.ed = { list: l, hist: [] }; }
+    return it.ed;
+  }
+  function edCopy(list) { return list.map(function (x) { return { id: x.id, src: x.src, rot: x.rot }; }); }
+  function edMutate(fn) {
+    var it = S.edit; if (!it || busy) return;
+    var st = edState(it); st.hist.push(edCopy(st.list)); if (st.hist.length > 60) st.hist.shift();
+    if (fn(st.list) === false) { st.hist.pop(); return; }
+    status("edit", ""); drawEdit();
+  }
+  function edSelIdx(list) { var r = []; list.forEach(function (x, i) { if (EDT.sel.has(x.id)) r.push(i); }); return r; }
+  function edCanMove(list, dir) {
+    for (var i = 0; i < list.length; i++) {
+      if (!EDT.sel.has(list[i].id)) continue;
+      var n = list[i + dir]; if (n && !EDT.sel.has(n.id)) return true;
+    }
+    return false;
+  }
+  function edMove(list, dir) {
+    var moved = false, i;
+    if (dir < 0) { for (i = 1; i < list.length; i++) if (EDT.sel.has(list[i].id) && !EDT.sel.has(list[i - 1].id)) { var t = list[i - 1]; list[i - 1] = list[i]; list[i] = t; moved = true; } }
+    else { for (i = list.length - 2; i >= 0; i--) if (EDT.sel.has(list[i].id) && !EDT.sel.has(list[i + 1].id)) { var t2 = list[i + 1]; list[i + 1] = list[i]; list[i] = t2; moved = true; } }
+    return moved;
+  }
+  function updateEditUI() {
+    var it = S.edit, bar = $("#edbar"); if (!bar) return;
+    var on = !!it, st = on ? edState(it) : null, n = on ? st.list.length : 0, k = on ? edSelIdx(st.list).length : 0;
+    bar.hidden = $("#edwrap").hidden = $("#edsize").hidden = !on;
+    $("#ed-info").textContent = on ? n + " halaman · " + k + " dipilih" : "";
+    var ds = function (id, v) { $(id).disabled = busy || v; };
+    ds("#ed-left", !k || !edCanMove(st ? st.list : [], -1)); ds("#ed-right", !k || !edCanMove(st ? st.list : [], 1));
+    ds("#ed-rl", !k); ds("#ed-rr", !k); ds("#ed-del", !k); ds("#ed-dup", !k);
+    ds("#ed-blank", !on); ds("#ed-sel", !n); ds("#ed-undo", !on || !st.hist.length); ds("#ed-reset", !on || !st.hist.length);
+    $("#ed-sel").textContent = on && n && k === n ? "Lepas pilihan" : "Pilih semua";
+    $("#go-edit").disabled = busy || !on || !n;
+  }
+  function drawEdit() {
+    var it = S.edit, grid = $("#ed-grid"), wrap = $("#edwrap"); if (!it) return;
+    var st = edState(it), keep = wrap.scrollTop, tk = EDT.tk;
+    if (EDT.io) { EDT.io.disconnect(); EDT.io = null; }
+    grid.textContent = "";
+    var ar = it.w && it.h ? it.w / it.h : 0.707, sc = Math.min(ar, 1 / ar);
+    grid.style.setProperty("--ar", String(ar));
+    var io = EDT.io = window.IntersectionObserver ? new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { if (en.isIntersecting) { io.unobserve(en.target); loadThumb(EDT, en.target, en.target._src + 1, it, tk); } });
+    }, { root: wrap, rootMargin: "300px" }) : null;
+    var live = {}; st.list.forEach(function (x) { live[x.id] = 1; });
+    EDT.sel.forEach(function (id) { if (!live[id]) EDT.sel.delete(id); });
+    var dragId = null;
+    st.list.forEach(function (x, i) {
+      var b = el("button", "pk" + (x.src == null ? " blank" : "")); b.type = "button";
+      b.setAttribute("aria-pressed", EDT.sel.has(x.id) ? "true" : "false");
+      b.setAttribute("aria-label", "Halaman " + (i + 1) + (x.src == null ? " (kosong)" : ""));
+      var rotate = function (im) { if (x.rot) { im.className = "rot"; im.style.transform = "rotate(" + x.rot + "deg)" + (x.rot % 180 ? " scale(" + sc + ")" : ""); } };
+      if (x.src == null) b.appendChild(el("span", "bl", "Kosong"));
+      else {
+        b._src = x.src;
+        if (it.pk && it.pk[x.src + 1]) { var im0 = document.createElement("img"); im0.src = it.pk[x.src + 1]; im0.alt = ""; rotate(im0); b.appendChild(im0); b._loaded = true; }
+        else { b._onimg = rotate; if (io) io.observe(b); else loadThumb(EDT, b, x.src + 1, it, tk); }
+      }
+      b.appendChild(el("span", "n", String(i + 1))); b.appendChild(el("span", "ck"));
+      b.onclick = function () {
+        if (EDT.sel.has(x.id)) EDT.sel.delete(x.id); else EDT.sel.add(x.id);
+        b.setAttribute("aria-pressed", EDT.sel.has(x.id) ? "true" : "false"); updateEditUI();
+      };
+      /* seret dan lepas (mouse); di layar sentuh pakai tombol ◀ ▶ */
+      b.draggable = true;
+      b.addEventListener("dragstart", function (e) { dragId = x.id; b.classList.add("dragging"); try { e.dataTransfer.setData("text/plain", String(x.id)); e.dataTransfer.effectAllowed = "move"; } catch (er) {} });
+      b.addEventListener("dragend", function () { b.classList.remove("dragging"); });
+      b.addEventListener("dragover", function (e) { if (dragId != null) e.preventDefault(); });
+      b.addEventListener("drop", function (e) {
+        e.preventDefault(); var id = dragId; dragId = null; if (id == null || id === x.id) return;
+        edMutate(function (list) {
+          var from = list.findIndex(function (y) { return y.id === id; }), to = list.findIndex(function (y) { return y.id === x.id; });
+          if (from < 0 || to < 0) return false;
+          var m = list.splice(from, 1)[0]; list.splice(to, 0, m);
+        });
+      });
+      grid.appendChild(b);
+    });
+    wrap.scrollTop = keep; updateEditUI();
+  }
+  function renderEdit() {
+    var it = S.edit, grid = $("#ed-grid");
+    if (EDT.it === it && (it || !grid.firstChild)) return;
+    disposeCtx(EDT); grid.textContent = ""; EDT.sel.clear();
+    if (!it) { updateEditUI(); return; }
+    EDT.it = it; drawEdit();
+  }
+  $("#ed-left").onclick = function () { edMutate(function (l) { return edMove(l, -1); }); };
+  $("#ed-right").onclick = function () { edMutate(function (l) { return edMove(l, 1); }); };
+  [["#ed-rl", 270], ["#ed-rr", 90]].forEach(function (c) {
+    $(c[0]).onclick = function () { edMutate(function (l) { l.forEach(function (x) { if (EDT.sel.has(x.id)) x.rot = (x.rot + c[1]) % 360; }); }); };
+  });
+  $("#ed-del").onclick = function () {
+    edMutate(function (l) {
+      var keep = l.filter(function (x) { return !EDT.sel.has(x.id); });
+      if (!keep.length) { status("edit", "Sisakan minimal satu halaman.", "err"); return false; }
+      l.length = 0; keep.forEach(function (x) { l.push(x); }); EDT.sel.clear();
+    });
+  };
+  $("#ed-dup").onclick = function () {
+    edMutate(function (l) {
+      var out = []; l.forEach(function (x) { out.push(x); if (EDT.sel.has(x.id)) out.push({ id: ++uid, src: x.src, rot: x.rot }); });
+      l.length = 0; out.forEach(function (x) { l.push(x); });
+    });
+  };
+  $("#ed-blank").onclick = function () {
+    edMutate(function (l) {
+      var idx = edSelIdx(l), at = idx.length ? idx[idx.length - 1] + 1 : l.length, nb = { id: ++uid, src: null, rot: 0 };
+      l.splice(at, 0, nb); EDT.sel.clear(); EDT.sel.add(nb.id);
+    });
+  };
+  $("#ed-sel").onclick = function () {
+    var it = S.edit; if (!it) return; var st = edState(it), all = edSelIdx(st.list).length === st.list.length;
+    EDT.sel.clear(); if (!all) st.list.forEach(function (x) { EDT.sel.add(x.id); });
+    $("#ed-grid").querySelectorAll(".pk").forEach(function (b, i) { b.setAttribute("aria-pressed", EDT.sel.has(st.list[i].id) ? "true" : "false"); });
+    updateEditUI();
+  };
+  $("#ed-undo").onclick = function () {
+    var it = S.edit; if (!it || busy) return; var st = edState(it); if (!st.hist.length) return;
+    st.list = st.hist.pop(); status("edit", ""); drawEdit();
+  };
+  $("#ed-reset").onclick = function () {
+    edMutate(function (l) { var f = []; for (var i = 0; i < S.edit.pages; i++) f.push({ id: ++uid, src: i, rot: 0 }); l.length = 0; f.forEach(function (x) { l.push(x); }); EDT.sel.clear(); });
+  };
+  $("#go-edit").onclick = function () {
+    run("edit", async function () {
+      var it = S.edit, list = edState(it).list.slice(), n = list.length;
+      if (!n) throw new Error("Tidak ada halaman untuk disimpan.");
+      var tick = function () { return new Promise(function (r) { setTimeout(r, 0); }); };
+      var src = await PDFDocument.load(it.bytes, { ignoreEncryption: true }), out = await PDFDocument.create();
+      var seen = {}, uniq = [], copied = {}, used = {};
+      list.forEach(function (x) { if (x.src != null && !seen[x.src]) { seen[x.src] = 1; uniq.push(x.src); } });
+      if (uniq.length) { var pgs = await out.copyPages(src, uniq); uniq.forEach(function (idx, k) { copied[idx] = pgs[k]; }); }
+      var bw = it.w || 595, bh = it.h || 842;
+      for (var i = 0; i < n; i++) {
+        step("edit", i + 1, n, "Menyusun halaman " + (i + 1) + " dari " + n + "…");
+        if (i % 20 === 0) await tick();
+        var x = list[i];
+        if (x.src == null) { out.addPage([bw, bh]); continue; }
+        var pg;
+        if (!used[x.src]) { used[x.src] = 1; pg = copied[x.src]; } else pg = (await out.copyPages(src, [x.src]))[0];
+        out.addPage(pg);
+        if (x.rot) pg.setRotation(degrees((pg.getRotation().angle + x.rot) % 360));
+      }
+      checkCancel(); setProgress("edit", null); status("edit", "Menyimpan file…", "busy");
+      await tick();
+      await saveFile("edit", outName("edit", base(it.name) + "-diatur") + ".pdf", await out.save());
+    });
+  };
 
   var TI_CAP = 4096, TI_MAX_BYTES = 450 * 1048576;
   $("#go-toimg").onclick = function () {

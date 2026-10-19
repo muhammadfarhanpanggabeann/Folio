@@ -1,4 +1,4 @@
-var VERSION = "folio-v7";
+var VERSION = "folio-v8";
 var CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 var LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
