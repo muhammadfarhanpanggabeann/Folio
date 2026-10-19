@@ -89,9 +89,6 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .drop strong { font-weight: 600; }
 .drop span { color: var(--muted); font-size: 13px; }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.cam-row { display: none; margin-top: 10px; }
-.cam-row input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-@media (pointer: coarse) { .cam-row { display: block; } }
 
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .row { display: flex; align-items: center; gap: 16px; border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; background: var(--surface); transition: border-color .15s, box-shadow .15s; }
@@ -106,6 +103,11 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .icon-btn { flex: none; width: 34px; height: 34px; border: 0; background: transparent; color: var(--muted); border-radius: 8px; font-size: 16px; cursor: pointer; }
 .icon-btn:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
 .icon-btn:disabled { opacity: .3; cursor: default; }
+.row .thumb { transition: transform .2s; }
+.drag-h { flex: none; width: 28px; height: 44px; display: grid; place-items: center; color: var(--muted); font-size: 18px; letter-spacing: -2px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; border-radius: 8px; }
+.drag-h:hover { background: var(--surface-2); color: var(--ink); }
+.row.dragging { opacity: .9; border-color: var(--accent); box-shadow: 0 10px 28px -8px rgba(26,32,51,.35); position: relative; z-index: 2; }
+@media (pointer: coarse) { .row .mv { display: none; } }
 .row { flex-wrap: wrap; }
 .row .thumbs { flex: 0 0 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; padding-top: 8px; }
 .thumb-cell { position: relative; aspect-ratio: 3 / 4; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px -2px rgba(26,32,51,.15); }
@@ -361,7 +363,6 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <p class="lead">Satu gambar jadi satu halaman, sesuai urutan daftar.</p>
     <div class="step"><i>1</i>Pilih gambar</div>
     <label class="drop" data-drop="img"><strong>Pilih gambar atau seret ke sini</strong><span>JPG, PNG, atau WebP</span><input type="file" id="in-img" accept="image/*" multiple></label>
-    <div class="cam-row"><button class="btn ghost" id="cam-btn" type="button">Ambil foto dengan kamera</button><input type="file" id="cam-img" accept="image/*" capture="environment" tabindex="-1"></div>
     <ul class="list" id="list-img"></ul>
     <div class="step"><i>2</i>Pilih ukuran halaman</div>
     <div class="fields">
@@ -845,12 +846,61 @@ window.folioStart = function () {
 
   /* ---------- daftar ---------- */
   function moveItem(arr, i, d) { var j = i + d; if (j < 0 || j >= arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+  /* geser urutan dengan jari atau mouse lewat pegangan ⋮⋮. Baris tidak dipindah di DOM saat digeser (hanya transform),
+     jadi pointer tidak terlepas; urutan baru disimpan saat dilepas */
+  function attachDrag(handle, li, ul, arr) {
+    handle.addEventListener("pointerdown", function (e) {
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      try { handle.setPointerCapture(e.pointerId); } catch (x) {}
+      var rows = Array.from(ul.children).filter(function (x) { return x.dataset.id; }), idx0 = rows.indexOf(li);
+      if (rows.length < 2 || idx0 < 0) return;
+      var sy0 = window.scrollY, startY = e.clientY, lastY = e.clientY, raf = 0, newIdx = idx0;
+      var tops = rows.map(function (r) { var b = r.getBoundingClientRect(); return b.top + sy0; });
+      var hs = rows.map(function (r) { return r.offsetHeight; });
+      var gap = rows.length > 1 ? Math.max(0, tops[1] - (tops[0] + hs[0])) : 12, slot = hs[idx0] + gap;
+      rows.forEach(function (r) { if (r !== li) r.style.transition = "transform .15s"; });
+      li.style.transition = "none"; li.classList.add("dragging");
+      function update() {
+        var dy = lastY - startY + (window.scrollY - sy0);
+        li.style.transform = "translateY(" + dy + "px)";
+        var center = tops[idx0] + hs[idx0] / 2 + dy, n = 0;
+        rows.forEach(function (r, i) { if (i !== idx0 && tops[i] + hs[i] / 2 < center) n++; });
+        newIdx = n;
+        rows.forEach(function (r, i) {
+          if (r === li) return;
+          var sh = (i > idx0 && i <= newIdx) ? -slot : (i < idx0 && i >= newIdx) ? slot : 0;
+          r.style.transform = sh ? "translateY(" + sh + "px)" : "";
+        });
+      }
+      function tick() {
+        var edge = 70, d = lastY < edge ? -14 : lastY > innerHeight - edge ? 14 : 0;
+        if (d) { window.scrollBy(0, d); update(); }
+        raf = requestAnimationFrame(tick);
+      }
+      raf = requestAnimationFrame(tick);
+      function mv(ev) { lastY = ev.clientY; update(); }
+      function end() {
+        cancelAnimationFrame(raf);
+        window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
+        rows.forEach(function (r) { r.style.transform = ""; r.style.transition = ""; });
+        li.classList.remove("dragging");
+        if (newIdx !== idx0) { var it = arr.splice(idx0, 1)[0]; arr.splice(newIdx, 0, it); status("img", ""); }
+        redraw();
+      }
+      window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+    });
+  }
   function renderList(key, arr, empty) {
     var ul = $("#list-" + key); ul.textContent = "";
     if (!arr.length) { var li0 = el("li", "empty", empty); ul.appendChild(li0); return; }
     arr.forEach(function (it, i) {
-      var li = el("li", "row");
-      if (key === "img") { var im = el("img", "thumb"); im.src = it.url; im.alt = ""; li.appendChild(im); }
+      var li = el("li", "row"); li.dataset.id = it.id;
+      if (key === "img") {
+        var dh = el("div", "drag-h", "⋮⋮"); dh.setAttribute("aria-hidden", "true"); dh.title = "Tahan dan geser untuk mengubah urutan";
+        attachDrag(dh, li, ul, arr); li.appendChild(dh);
+        var im = el("img", "thumb"); im.src = it.url; im.alt = ""; if (it.rot) im.style.transform = "rotate(" + it.rot + "deg)"; li.appendChild(im);
+      }
       else li.appendChild(thumbEl(it));
       var info = el("div", "info"), nm = el("div", "name", it.name);
       if (it.sample) nm.appendChild(el("span", "badge", "contoh"));
@@ -864,6 +914,12 @@ window.folioStart = function () {
       up.onclick = function () { moveItem(arr, i, -1); status(key, ""); redraw(); };
       dn.onclick = function () { moveItem(arr, i, 1); status(key, ""); redraw(); };
       rm.onclick = function () { var x = arr.splice(i, 1)[0]; if (x.url) URL.revokeObjectURL(x.url); status(key, ""); redraw(); };
+      if (key === "img") {
+        up.classList.add("mv"); dn.classList.add("mv");
+        var rt = el("button", "icon-btn", "↻"); rt.type = "button"; rt.setAttribute("aria-label", "Putar " + it.name + " 90 derajat");
+        rt.onclick = function () { it.rot = ((it.rot || 0) + 90) % 360; status(key, ""); redraw(); };
+        li.appendChild(rt);
+      }
       li.appendChild(up); li.appendChild(dn); li.appendChild(rm);
       ul.appendChild(li);
     });
@@ -989,16 +1045,6 @@ window.folioStart = function () {
       var files = Array.from(e.dataTransfer.files);
       if (key === "img") takeImages(files); else takePdfs(key, key === "merge" ? files : files.slice(0, 1));
     });
-  });
-  /* kamera: satu foto per ketukan, diberi nama foto-1, foto-2, ... */
-  var camN = 0;
-  $("#cam-btn").onclick = function () { $("#cam-img").click(); };
-  $("#cam-img").addEventListener("change", function () {
-    var files = Array.from(this.files); this.value = "";
-    takeImages(files.map(function (f) {
-      var ext = /png$/.test(f.type) ? ".png" : /webp$/.test(f.type) ? ".webp" : ".jpg";
-      try { return new File([f], "foto-" + (++camN) + ext, { type: f.type, lastModified: f.lastModified }); } catch (e) { return f; }
-    }));
   });
   $("#add-range").onclick = function () {
     S.ranges.push({ from: "", to: "" }); status("split", ""); redraw();
@@ -1578,17 +1624,26 @@ window.folioStart = function () {
       throw new Error(friendlyErr(e, buf));
     }
   }
-  function placeImage(doc, im, size, mg) {
-    var ow = im.ow, oh = im.oh;
+  /* rot = putar searah jarum jam (0/90/180/270); gambar digambar miring lalu digeser agar pas di kotak tampilan */
+  function drawRot(page, img, bx, by, bw, bh, rot) {
+    var odd = rot % 180 !== 0, w = odd ? bh : bw, h = odd ? bw : bh;
+    if (rot === 90) page.drawImage(img, { x: bx, y: by + w, width: w, height: h, rotate: degrees(-90) });
+    else if (rot === 180) page.drawImage(img, { x: bx + w, y: by + h, width: w, height: h, rotate: degrees(180) });
+    else if (rot === 270) page.drawImage(img, { x: bx + h, y: by, width: w, height: h, rotate: degrees(90) });
+    else page.drawImage(img, { x: bx, y: by, width: w, height: h });
+  }
+  function placeImage(doc, im, size, mg, rot) {
+    rot = rot || 0;
+    var odd = rot % 180 !== 0, ow = odd ? im.oh : im.ow, oh = odd ? im.ow : im.oh;
     if (size !== "fit") {
       /* A4: potret, lanskap, atau otomatis mengikuti gambar; gambar diperbesar/diperkecil sampai muat */
       var land = size === "a4l" || (size === "a4" && ow > oh), W = land ? 842 : 595, H = land ? 595 : 842;
       var sc = Math.min((W - 2 * mg) / ow, (H - 2 * mg) / oh), w = ow * sc, h = oh * sc, page = doc.addPage([W, H]);
-      page.drawImage(im.img, { x: (W - w) / 2, y: (H - h) / 2, width: w, height: h });
+      drawRot(page, im.img, (W - w) / 2, (H - h) / 2, w, h, rot);
     } else {
       /* sisi terpanjang dibatasi 842 pt agar halaman tidak raksasa */
       var k = Math.min(1, 842 / Math.max(ow, oh)), pw = ow * k, ph = oh * k, pg = doc.addPage([pw, ph]);
-      pg.drawImage(im.img, { x: 0, y: 0, width: pw, height: ph });
+      drawRot(pg, im.img, 0, 0, pw, ph, rot);
     }
   }
   async function placeholderPage(doc, size, name, reason) {
@@ -1616,7 +1671,7 @@ window.folioStart = function () {
       await new Promise(function (r) { setTimeout(r, 0); });
       try {
         var im = await imgForPdf(doc, it, qmode, forPreview);
-        placeImage(doc, im, size, mg); it.bad = null;
+        placeImage(doc, im, size, mg, it.rot); it.bad = null;
         if (forPreview) est += estimateBytes(it, im, qmode);
       } catch (e) {
         it.bad = e.message; failed.push({ name: it.name, msg: e.message });
@@ -1657,6 +1712,14 @@ window.folioStart = function () {
   }
   function syncPv() { PV_PAIRS.forEach(function (p) { $(p[1]).value = $(p[0]).value; }); updateMarginState(); }
   $("#img-size").addEventListener("change", updateMarginState);
+  /* ingat pengaturan ukuran, margin, dan kualitas di perangkat */
+  var IMG_SEL = ["#img-size", "#img-margin", "#img-q"];
+  try {
+    var savedImg = JSON.parse(localStorage.getItem("folio-img") || "null");
+    if (savedImg) IMG_SEL.forEach(function (sel, k) { var v = savedImg[k], o = $(sel); if (v != null && Array.from(o.options).some(function (x) { return x.value === v; })) o.value = v; });
+  } catch (e) {}
+  function saveImgPref() { try { localStorage.setItem("folio-img", JSON.stringify(IMG_SEL.map(function (sel) { return $(sel).value; }))); } catch (e) {} }
+  IMG_SEL.concat(["#pv-size", "#pv-margin", "#pv-q"]).forEach(function (sel) { $(sel).addEventListener("change", function () { setTimeout(saveImgPref, 0); }); });
   updateMarginState();
   function reloadViewerDoc() {
     if (V.docP) { V.docP.then(function (d) { d.destroy(); }, function () {}); V.docP = null; }
