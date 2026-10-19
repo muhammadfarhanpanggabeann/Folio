@@ -89,6 +89,9 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .drop strong { font-weight: 600; }
 .drop span { color: var(--muted); font-size: 13px; }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.cam-row { display: none; margin-top: 10px; }
+.cam-row input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+@media (pointer: coarse) { .cam-row { display: block; } }
 
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .row { display: flex; align-items: center; gap: 16px; border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; background: var(--surface); transition: border-color .15s, box-shadow .15s; }
@@ -358,6 +361,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <p class="lead">Satu gambar jadi satu halaman, sesuai urutan daftar.</p>
     <div class="step"><i>1</i>Pilih gambar</div>
     <label class="drop" data-drop="img"><strong>Pilih gambar atau seret ke sini</strong><span>JPG, PNG, atau WebP</span><input type="file" id="in-img" accept="image/*" multiple></label>
+    <div class="cam-row"><button class="btn ghost" id="cam-btn" type="button">Ambil foto dengan kamera</button><input type="file" id="cam-img" accept="image/*" capture="environment" tabindex="-1"></div>
     <ul class="list" id="list-img"></ul>
     <div class="step"><i>2</i>Pilih ukuran halaman</div>
     <div class="fields">
@@ -985,6 +989,16 @@ window.folioStart = function () {
       var files = Array.from(e.dataTransfer.files);
       if (key === "img") takeImages(files); else takePdfs(key, key === "merge" ? files : files.slice(0, 1));
     });
+  });
+  /* kamera: satu foto per ketukan, diberi nama foto-1, foto-2, ... */
+  var camN = 0;
+  $("#cam-btn").onclick = function () { $("#cam-img").click(); };
+  $("#cam-img").addEventListener("change", function () {
+    var files = Array.from(this.files); this.value = "";
+    takeImages(files.map(function (f) {
+      var ext = /png$/.test(f.type) ? ".png" : /webp$/.test(f.type) ? ".webp" : ".jpg";
+      try { return new File([f], "foto-" + (++camN) + ext, { type: f.type, lastModified: f.lastModified }); } catch (e) { return f; }
+    }));
   });
   $("#add-range").onclick = function () {
     S.ranges.push({ from: "", to: "" }); status("split", ""); redraw();
