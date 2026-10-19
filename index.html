@@ -213,8 +213,11 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 .ed-info { font-size: 13.5px; color: var(--muted); }
 .ed-wrap { max-height: 62vh; }
 .ed .pk img { opacity: 1; }
-.ed .pk[draggable="true"] { cursor: grab; }
-.ed .pk.dragging { opacity: .4; }
+.ed .pk { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.ed .pk img { -webkit-user-drag: none; }
+.ed .pk .dh { position: absolute; right: 4px; bottom: 4px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: rgba(20, 24, 38, .72); color: #fff; font: 700 15px/1 var(--font-body); letter-spacing: -2px; cursor: grab; touch-action: none; }
+.ed .pk.dragging { z-index: 5; opacity: .93; cursor: grabbing; box-shadow: 0 10px 26px rgba(20, 24, 38, .35); }
+.ed .pk.dragging .dh { cursor: grabbing; }
 .pk.blank { background: #fff; border-style: dashed; }
 .pk .bl { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: #667085; }
 .pk img.rot { transition: transform .2s; }
@@ -427,7 +430,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <div class="step"><i>1</i>Pilih file</div>
     <label class="drop" data-drop="edit"><strong>Pilih satu PDF atau seret ke sini</strong><span>File lama akan diganti</span><input type="file" id="in-edit" accept="application/pdf,.pdf"></label>
     <ul class="list" id="list-edit"></ul>
-    <div class="step"><i>2</i>Ketuk halaman untuk memilih, lalu atur</div>
+    <div class="step"><i>2</i>Ketuk halaman untuk memilih. Geser ⋮⋮ untuk memindah</div>
     <div class="ed-bar" id="edbar" hidden>
       <button class="btn ghost" id="ed-left" type="button" aria-label="Pindah ke depan">◀</button>
       <button class="btn ghost" id="ed-right" type="button" aria-label="Pindah ke belakang">▶</button>
@@ -1614,6 +1617,74 @@ window.folioStart = function () {
     $("#ed-sel").textContent = on && n && k === n ? "Lepas pilihan" : "Pilih semua";
     $("#go-edit").disabled = busy || !on || !n;
   }
+  /* menggeser halaman di grid. Kotak tidak dipindah di DOM saat digeser (hanya transform), jadi pointer tidak terlepas;
+     urutan baru disimpan saat dilepas. immediate=true: mulai langsung (pegangan); false: mulai setelah bergeser beberapa piksel (mouse) */
+  function edDragStart(e, cell, immediate) {
+    if (busy || (e.button != null && e.button !== 0)) return;
+    var grid = $("#ed-grid"), wrap = $("#edwrap");
+    var cells = Array.from(grid.children).filter(function (c) { return c._id != null; }), idx0 = cells.indexOf(cell);
+    if (cells.length < 2 || idx0 < 0) return;
+    var rects = cells.map(function (c) { return c.getBoundingClientRect(); });
+    var sx = e.clientX, sy = e.clientY, wst0 = wrap.scrollTop, win0 = window.scrollY, pid = e.pointerId;
+    var lastX = sx, lastY = sy, raf = 0, newIdx = idx0, active = false;
+    function begin() {
+      active = true; cell.classList.add("dragging"); cell.style.transition = "none";
+      cells.forEach(function (c) { if (c !== cell) c.style.transition = "transform .15s"; });
+      raf = requestAnimationFrame(tick); update();
+    }
+    function update() {
+      var ds = (wrap.scrollTop - wst0) + (window.scrollY - win0);
+      cell.style.transform = "translate(" + (lastX - sx) + "px," + (lastY - sy + ds) + "px) scale(1.05)";
+      var best = idx0, bd = Infinity;
+      rects.forEach(function (r, i) {
+        var dx = r.left + r.width / 2 - lastX, dy = r.top + r.height / 2 - ds - lastY, d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = i; }
+      });
+      newIdx = best;
+      cells.forEach(function (c, k) {
+        if (c === cell) return;
+        var slot = k;
+        if (idx0 < newIdx && k > idx0 && k <= newIdx) slot = k - 1; else if (idx0 > newIdx && k < idx0 && k >= newIdx) slot = k + 1;
+        c.style.transform = slot === k ? "" : "translate(" + (rects[slot].left - rects[k].left) + "px," + (rects[slot].top - rects[k].top) + "px)";
+      });
+    }
+    function tick() {
+      var wr = wrap.getBoundingClientRect(), edge = 54, moved = false;
+      if (wrap.scrollHeight > wrap.clientHeight) {
+        if (lastY < wr.top + edge && wrap.scrollTop > 0) { wrap.scrollTop -= 12; moved = true; }
+        else if (lastY > wr.bottom - edge && wrap.scrollTop < wrap.scrollHeight - wrap.clientHeight) { wrap.scrollTop += 12; moved = true; }
+      }
+      if (lastY < 70) { window.scrollBy(0, -14); moved = true; } else if (lastY > innerHeight - 70) { window.scrollBy(0, 14); moved = true; }
+      if (moved) update();
+      raf = requestAnimationFrame(tick);
+    }
+    function mv(ev) {
+      if (ev.pointerId !== pid) return;
+      lastX = ev.clientX; lastY = ev.clientY;
+      if (!active) { if (Math.abs(lastX - sx) + Math.abs(lastY - sy) < 6) return; begin(); }
+      else update();
+    }
+    function finish(commit) {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel);
+      cells.forEach(function (c) { c.style.transform = ""; c.style.transition = ""; });
+      cell.classList.remove("dragging");
+      if (!active) return;
+      EDT.noClick = true; setTimeout(function () { EDT.noClick = false; }, 0);
+      if (commit && newIdx !== idx0) {
+        var id = cell._id, to = newIdx;
+        edMutate(function (list) {
+          var from = list.findIndex(function (y) { return y.id === id; });
+          if (from < 0) return false;
+          var m = list.splice(from, 1)[0]; list.splice(to, 0, m);
+        });
+      }
+    }
+    function up(ev) { if (ev.pointerId === pid) finish(true); }
+    function cancel(ev) { if (ev.pointerId === pid) finish(false); }
+    window.addEventListener("pointermove", mv); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel);
+    if (immediate) begin();
+  }
   function drawEdit() {
     var it = S.edit, grid = $("#ed-grid"), wrap = $("#edwrap"); if (!it) return;
     var st = edState(it), keep = wrap.scrollTop, tk = EDT.tk;
@@ -1626,7 +1697,6 @@ window.folioStart = function () {
     }, { root: wrap, rootMargin: "300px" }) : null;
     var live = {}; st.list.forEach(function (x) { live[x.id] = 1; });
     EDT.sel.forEach(function (id) { if (!live[id]) EDT.sel.delete(id); });
-    var dragId = null;
     st.list.forEach(function (x, i) {
       var b = el("button", "pk" + (x.src == null ? " blank" : "")); b.type = "button";
       b.setAttribute("aria-pressed", EDT.sel.has(x.id) ? "true" : "false");
@@ -1640,21 +1710,24 @@ window.folioStart = function () {
       }
       b.appendChild(el("span", "n", String(i + 1))); b.appendChild(el("span", "ck"));
       b.onclick = function () {
+        if (EDT.noClick) return;
         if (EDT.sel.has(x.id)) EDT.sel.delete(x.id); else EDT.sel.add(x.id);
         b.setAttribute("aria-pressed", EDT.sel.has(x.id) ? "true" : "false"); updateEditUI();
       };
-      /* seret dan lepas (mouse); di layar sentuh pakai tombol ◀ ▶ */
-      b.draggable = true;
-      b.addEventListener("dragstart", function (e) { dragId = x.id; b.classList.add("dragging"); try { e.dataTransfer.setData("text/plain", String(x.id)); e.dataTransfer.effectAllowed = "move"; } catch (er) {} });
-      b.addEventListener("dragend", function () { b.classList.remove("dragging"); });
-      b.addEventListener("dragover", function (e) { if (dragId != null) e.preventDefault(); });
-      b.addEventListener("drop", function (e) {
-        e.preventDefault(); var id = dragId; dragId = null; if (id == null || id === x.id) return;
-        edMutate(function (list) {
-          var from = list.findIndex(function (y) { return y.id === id; }), to = list.findIndex(function (y) { return y.id === x.id; });
-          if (from < 0 || to < 0) return false;
-          var m = list.splice(from, 1)[0]; list.splice(to, 0, m);
-        });
+      /* geser urutan: sentuh dan geser pegangan ⋮⋮ (jari atau mouse); mouse juga bisa menyeret langsung dari kotaknya.
+         Ketukan biasa di kotak tetap untuk memilih, dan menggulir daftar dengan jari tidak ikut memindah halaman */
+      b._id = x.id;
+      var dh = el("span", "dh", "⋮⋮"); dh.setAttribute("aria-hidden", "true"); dh.title = "Tahan dan geser untuk memindah halaman";
+      dh.addEventListener("pointerdown", function (ev) {
+        ev.stopPropagation(); ev.preventDefault();
+        try { dh.setPointerCapture(ev.pointerId); } catch (er) {}
+        edDragStart(ev, b, true);
+      });
+      dh.addEventListener("click", function (ev) { ev.stopPropagation(); });
+      b.appendChild(dh);
+      b.addEventListener("pointerdown", function (ev) {
+        if (ev.pointerType !== "mouse") return;
+        ev.preventDefault(); edDragStart(ev, b, false);
       });
       grid.appendChild(b);
     });
