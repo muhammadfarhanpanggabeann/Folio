@@ -468,12 +468,11 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
 </div>
 
 <script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
 <script>
-(function () {
+window.folioStart = function () {
   if (!window.PDFLib) {
-    document.querySelectorAll(".status").forEach(function (st) { st.textContent = "Pustaka pdf-lib gagal dimuat. Periksa koneksi internet lalu muat ulang halaman."; st.className = "status err"; });
+    document.querySelectorAll(".status").forEach(function (st) { st.textContent = "Pustaka pdf-lib gagal dimuat. Muat ulang halaman."; st.className = "status err"; });
     document.querySelectorAll(".btn").forEach(function (b) { b.disabled = true; });
     return;
   }
@@ -482,7 +481,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg", "edit"];
   var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, edit: null, img: [], ranges: [{ from: "1", to: "2" }] };
   var uid = 0, busy = false, MAXT = 1;
-  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("lib/pdf.worker.min.mjs", document.baseURI).href;
 
   function fmtSize(n) { return n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
   function base(name) { return name.replace(/\.[^.]+$/, ""); }
@@ -572,7 +571,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     } catch (e) {
       if (tk !== V.token) return;
       d.dataset.state = "err"; d.classList.add("done");
-      d.textContent = ""; d.appendChild(el("p", "err", "Halaman tidak bisa ditampilkan. File mungkin dikunci kata sandi atau pustaka pratinjau gagal dimuat (cek koneksi internet)."));
+      d.textContent = ""; d.appendChild(el("p", "err", "Halaman tidak bisa ditampilkan. File mungkin dikunci kata sandi atau pustaka pratinjau gagal dimuat."));
     }
   }
   function buildPages() {
@@ -1071,7 +1070,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   /* ---------- Kompres PDF: render ulang tiap halaman jadi JPG ---------- */
   var CQ = { high: { dpi: 150, q: 0.8 }, bal: { dpi: 110, q: 0.7 }, small: { dpi: 72, q: 0.55 } }, CMP_CAP = 3000;
   function openPdfjs(it) {
-    if (!window.pdfjsLib) throw new Error("Kompres butuh pustaka pdf.js yang gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+    if (!window.pdfjsLib) throw new Error("Kompres butuh pustaka pdf.js yang gagal dimuat. Muat ulang halaman.");
     return pdfjsLib.getDocument({ data: it.bytes.slice(), verbosity: 0 });
   }
   async function pageJpeg(page, cfg, mime, cap) {
@@ -1627,7 +1626,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   };
   $("#prev-img").onclick = function () {
     run("img", async function () {
-      if (!window.pdfjsLib) throw new Error("Pratinjau butuh pustaka pdf.js yang gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+      if (!window.pdfjsLib) throw new Error("Pratinjau butuh pustaka pdf.js yang gagal dimuat. Muat ulang halaman.");
       var r = await buildImgPdf(true, function (i, n) { status("img", "Menyiapkan pratinjau " + i + " dari " + n + "…", "busy"); });
       status("img", "Pratinjau siap (" + r.pages + " hlm).", "ok");
       var it = { id: ++uid, name: outName("img", "gambar") + ".pdf", bytes: r.bytes, pages: r.pages, w: r.w, h: r.h, size: r.bytes.length, est: r.est, failed: r.failed, preview: true, lastPage: lastImgPage };
@@ -1704,7 +1703,16 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
 
   redraw();
   seed().catch(function () {});
-})();
+};
+</script>
+<script type="module">
+/* pdf.js dimuat dari folder lib/ (lokal). Aplikasi tetap dimulai walau gagal, tanpa fitur pratinjau. */
+import * as pdfjs from "./lib/pdf.min.mjs";
+window.pdfjsLib = pdfjs;
+</script>
+<script>
+/* modul dieksekusi sebelum DOMContentLoaded, jadi pdfjsLib sudah siap di sini */
+window.addEventListener("DOMContentLoaded", function () { window.folioStart(); });
 </script>
 
 </body>

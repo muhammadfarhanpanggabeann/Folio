@@ -1,18 +1,11 @@
-var VERSION = "folio-v8";
-var CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
-var LIBS = [
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"
+var VERSION = "folio-v9";
+var CORE = [
+  "./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png",
+  "./lib/pdf-lib.min.js", "./lib/pdf.min.mjs", "./lib/pdf.worker.min.mjs"
 ];
 
 self.addEventListener("install", function (e) {
-  e.waitUntil(caches.open(VERSION).then(function (c) {
-    var libs = Promise.all(LIBS.map(function (u) {
-      return fetch(u, { mode: "no-cors" }).then(function (r) { return c.put(u, r); }).catch(function () {});
-    }));
-    return Promise.all([c.addAll(CORE), libs]);
-  }).then(function () { return self.skipWaiting(); }));
+  e.waitUntil(caches.open(VERSION).then(function (c) { return c.addAll(CORE); }).then(function () { return self.skipWaiting(); }));
 });
 
 self.addEventListener("activate", function (e) {
@@ -25,10 +18,8 @@ self.addEventListener("fetch", function (e) {
   var req = e.request;
   if (req.method !== "GET") return;
   var url = new URL(req.url);
-  var cdn = /(^|\.)(cdnjs\.cloudflare\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(url.hostname);
-
-  if (cdn) {
-    // pustaka dan font: cache dulu, segarkan di belakang
+  if (/(^|\.)(fonts\.googleapis\.com|fonts\.gstatic\.com)$/.test(url.hostname)) {
+    // font saja: cache dulu, segarkan di belakang
     e.respondWith(caches.open(VERSION).then(function (c) {
       return c.match(req).then(function (hit) {
         var net = fetch(req).then(function (r) { if (r && (r.ok || r.type === "opaque")) c.put(req, r.clone()); return r; }).catch(function () { return hit; });
@@ -46,5 +37,6 @@ self.addEventListener("fetch", function (e) {
     }).catch(function () { return caches.match("./index.html"); }));
     return;
   }
+  // pustaka dan aset: cache dulu
   e.respondWith(caches.match(req).then(function (hit) { return hit || fetch(req); }));
 });
