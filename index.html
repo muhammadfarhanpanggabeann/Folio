@@ -62,7 +62,7 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .privacy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 /* Pilihan alat */
-.tabs { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.tabs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .tab {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   font: 500 13px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 12px;
@@ -229,6 +229,11 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 @keyframes prog-slide { from { margin-left: -35%; } to { margin-left: 100%; } }
 @media (prefers-reduced-motion: reduce) { .prog.ind .bar { animation: none; width: 100%; opacity: .45; } }
 .status.busy { color: var(--muted); }
+.chk { display: flex; align-items: center; gap: 12px; min-height: 44px; font-weight: 600; font-size: 15px; cursor: pointer; }
+.chk input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.opts { display: flex; flex-direction: column; gap: 14px; padding: 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; }
+.opts[hidden] { display: none; }
+.field .hint.bad { color: var(--danger); }
 footer { text-align: center; color: var(--muted); font-size: 12px; }
 
 @media (max-width: 520px) {
@@ -237,7 +242,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   .row { gap: 12px; padding: 10px; }
   .row .thumb { width: 72px; height: 72px; }
   .thumb-cell.first { width: 80px; }
-  .tabs { grid-template-columns: repeat(4, 1fr); }
+  .tabs { grid-template-columns: repeat(5, 1fr); }
   .tab { font-size: 12px; padding: 9px 2px; }
   .btn { flex: 1; }
   .v-body { padding: 12px; gap: 12px; }
@@ -271,6 +276,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M14 17.5h7M17.5 14v7"/></svg>Susun</button>
     <button class="tab" role="tab" id="tab-duplex" aria-controls="panel-duplex" aria-selected="false" data-tab="duplex">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8h12l-3-3.5M17 16H5l3 3.5"/></svg>Dua sisi</button>
+    <button class="tab" role="tab" id="tab-stamp" aria-controls="panel-stamp" aria-selected="false" data-tab="stamp">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14M8 20v-3a4 4 0 0 1 8 0v3M12 13V8a3 3 0 1 0-3-3"/></svg>Cap</button>
   </div>
 
   <section class="panel" id="panel-merge" role="tabpanel" aria-labelledby="tab-merge">
@@ -475,6 +482,60 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <div class="status" id="st-duplex" role="status" aria-live="polite"></div>
   </section>
 
+  <section class="panel" id="panel-stamp" role="tabpanel" aria-labelledby="tab-stamp" hidden>
+    <h2>Watermark dan nomor halaman</h2>
+    <p class="lead">Pasang tulisan seperti RAHASIA atau SALINAN, dan beri nomor di tiap halaman.</p>
+    <div class="step"><i>1</i>Pilih file</div>
+    <label class="drop" data-drop="stamp"><strong>Pilih satu PDF atau seret ke sini</strong><span>File lama akan diganti</span><input type="file" id="in-stamp" accept="application/pdf,.pdf"></label>
+    <ul class="list" id="list-stamp"></ul>
+    <div class="step"><i>2</i>Pilih yang dipasang</div>
+    <label class="chk"><input type="checkbox" id="sp-wm-on">Watermark (tulisan di tengah halaman)</label>
+    <div class="opts" id="sp-wm-box" hidden>
+      <div class="field"><label for="sp-wm-text">Tulisan</label>
+        <input type="text" id="sp-wm-text" value="RAHASIA" maxlength="60" autocomplete="off" spellcheck="false">
+        <div class="seg" id="sp-wm-quick"><button type="button">RAHASIA</button><button type="button">SALINAN</button><button type="button">DRAFT</button></div>
+        <span class="hint" id="sp-wm-hint">Hanya huruf Latin (A–Z dan aksen Eropa). Huruf Arab, Mandarin, dan lainnya belum didukung.</span></div>
+      <div class="fields">
+        <div class="field"><label for="sp-wm-pos">Arah tulisan</label>
+          <select id="sp-wm-pos"><option value="diag">Miring</option><option value="flat">Lurus</option></select></div>
+        <div class="field"><label for="sp-wm-size">Ukuran</label>
+          <select id="sp-wm-size"><option value="s">Kecil</option><option value="m" selected>Sedang</option><option value="l">Besar</option></select></div>
+        <div class="field"><label for="sp-wm-opa">Transparansi</label>
+          <select id="sp-wm-opa"><option value="0.12">Tinggi (sangat samar)</option><option value="0.25" selected>Sedang</option><option value="0.5">Rendah (jelas)</option></select></div>
+        <div class="field"><label for="sp-wm-color">Warna</label>
+          <select id="sp-wm-color"><option value="gray">Abu-abu</option><option value="red">Merah</option><option value="blue">Biru</option><option value="black">Hitam</option></select></div>
+      </div>
+      <div class="field"><label for="sp-wm-range">Halaman watermark</label>
+        <input type="text" id="sp-wm-range" value="" placeholder="Kosong = semua halaman" autocomplete="off" spellcheck="false">
+        <span class="hint">Contoh: 1-3, 5</span></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="sp-nr-on" checked>Nomor halaman</label>
+    <div class="opts" id="sp-nr-box">
+      <div class="fields">
+        <div class="field"><label for="sp-nr-fmt">Format</label>
+          <select id="sp-nr-fmt"><option value="n">1</option><option value="nt">1 / 10</option><option value="h">Halaman 1</option><option value="d">- 1 -</option></select></div>
+        <div class="field"><label for="sp-nr-pos">Posisi</label>
+          <select id="sp-nr-pos"><option value="bc">Bawah tengah</option><option value="br">Bawah kanan</option><option value="bl">Bawah kiri</option><option value="tc">Atas tengah</option><option value="tr">Atas kanan</option><option value="tl">Atas kiri</option></select></div>
+        <div class="field"><label for="sp-nr-size">Ukuran</label>
+          <select id="sp-nr-size"><option value="9">Kecil</option><option value="11" selected>Sedang</option><option value="14">Besar</option></select></div>
+        <div class="field"><label for="sp-nr-color">Warna</label>
+          <select id="sp-nr-color"><option value="black">Hitam</option><option value="gray">Abu-abu</option><option value="red">Merah</option><option value="blue">Biru</option></select></div>
+        <div class="field"><label for="sp-nr-start">Mulai dari angka</label>
+          <input type="number" id="sp-nr-start" value="1" min="0" max="9999" step="1" inputmode="numeric">
+          <span class="hint">Angka untuk halaman pertama yang diberi nomor.</span></div>
+      </div>
+      <div class="field"><label for="sp-nr-range">Halaman yang diberi nomor</label>
+        <input type="text" id="sp-nr-range" value="" placeholder="Kosong = semua halaman" autocomplete="off" spellcheck="false">
+        <span class="hint">Contoh: 2-10. Nomor dihitung dari halaman pertama dalam rentang ini.</span></div>
+    </div>
+    <div class="step"><i>3</i>Nama file dan unduh</div>
+    <div class="fields">
+      <div class="field"><label for="name-stamp">Nama file</label><input type="text" id="name-stamp" placeholder="Otomatis dari nama file" autocomplete="off" spellcheck="false"><span class="hint">.pdf ditambahkan otomatis.</span></div>
+    </div>
+    <div class="actions"><button class="btn" id="go-stamp" type="button">Pasang dan simpan</button></div>
+    <div class="status" id="st-stamp" role="status" aria-live="polite"></div>
+  </section>
+
   <dialog id="viewer" aria-label="Pratinjau halaman">
   <div class="v-bar">
     <button class="icon-btn" id="v-prev" type="button" aria-label="Halaman sebelumnya">←</button>
@@ -516,8 +577,8 @@ window.folioStart = function () {
   }
   var PDFDocument = PDFLib.PDFDocument, degrees = PDFLib.degrees, StandardFonts = PDFLib.StandardFonts, rgb = PDFLib.rgb;
   var $ = function (s) { return document.querySelector(s); };
-  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg", "edit", "duplex"];
-  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, edit: null, duplex: null, duplexB: null, img: [], ranges: [{ from: "1", to: "2" }] };
+  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg", "edit", "duplex", "stamp"];
+  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, edit: null, duplex: null, duplexB: null, stamp: null, img: [], ranges: [{ from: "1", to: "2" }] };
   var uid = 0, busy = false, MAXT = 1;
   if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("lib/pdf.worker.min.mjs", document.baseURI).href;
 
@@ -976,7 +1037,7 @@ window.folioStart = function () {
     $("#go-split").disabled = busy || !S.split;
     $("#go-rotate").disabled = busy || !S.rotate;
     $("#go-compress").disabled = busy || !S.compress;
-    updateEditUI(); renderDx();
+    updateEditUI(); renderDx(); updateStampUI();
     $("#go-toimg").disabled = busy || !S.toimg || !S.toimg.sel || !S.toimg.sel.size;
     $("#go-img").disabled = busy || !S.img.length;
     $("#prev-img").disabled = busy || !S.img.length;
@@ -1020,7 +1081,7 @@ window.folioStart = function () {
   function redraw() {
     renderRanges();
     renderList("merge", S.merge, "Belum ada file. Pilih minimal dua PDF.");
-    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick(); renderSingle("edit"); renderEdit(); renderSingle("duplex"); renderSingle("duplexb");
+    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick(); renderSingle("edit"); renderEdit(); renderSingle("duplex"); renderSingle("duplexb"); renderSingle("stamp");
     renderList("img", S.img, "Belum ada gambar. Pilih satu atau lebih gambar.");
     refresh();
   }
@@ -1230,6 +1291,104 @@ window.folioStart = function () {
       idx.forEach(function (i) { var p = doc.getPage(i); p.setRotation(degrees((p.getRotation().angle + angle) % 360)); });
       var bytes = await doc.save();
       await saveFile("rotate", outName("rotate", base(it.name) + "-diputar") + ".pdf", bytes);
+    });
+  };
+  /* ---------- Cap: watermark dan nomor halaman ---------- */
+  var SP_COLORS = { gray: [0.5, 0.5, 0.5], black: [0, 0, 0], red: [0.78, 0.1, 0.1], blue: [0.1, 0.3, 0.8] };
+  var SP_LATIN = /^[\u0020-\u007e\u00a0-\u00ff\u20ac\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u017d\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u017e\u0178]*$/;
+  var SP_IDS = ["sp-wm-on", "sp-wm-text", "sp-wm-pos", "sp-wm-size", "sp-wm-opa", "sp-wm-color", "sp-nr-on", "sp-nr-fmt", "sp-nr-pos", "sp-nr-size", "sp-nr-color", "sp-nr-start"];
+  function spWmBad() {
+    if (!$("#sp-wm-on").checked) return "";
+    var t = $("#sp-wm-text").value;
+    if (!t.trim()) return "empty";
+    return SP_LATIN.test(t) ? "" : "charset";
+  }
+  function updateStampUI() {
+    var wm = $("#sp-wm-on").checked, nr = $("#sp-nr-on").checked, bad = spWmBad();
+    $("#sp-wm-box").hidden = !wm; $("#sp-nr-box").hidden = !nr;
+    var h = $("#sp-wm-hint");
+    h.classList.toggle("bad", bad === "charset");
+    h.textContent = bad === "charset" ? "Ada huruf yang belum didukung (bukan huruf Latin). Ganti tulisannya, misalnya dengan huruf Latin." : "Hanya huruf Latin (A–Z dan aksen Eropa). Huruf Arab, Mandarin, dan lainnya belum didukung.";
+    Array.from($("#sp-wm-quick").children).forEach(function (b) { b.setAttribute("aria-pressed", b.textContent === $("#sp-wm-text").value ? "true" : "false"); });
+    $("#go-stamp").disabled = busy || !S.stamp || (!wm && !nr) || !!bad;
+  }
+  Array.from($("#sp-wm-quick").children).forEach(function (b) {
+    b.onclick = function () { $("#sp-wm-text").value = b.textContent; spSave(); updateStampUI(); };
+  });
+  function spSave() {
+    try { localStorage.setItem("folio-stamp", JSON.stringify(SP_IDS.map(function (id) { var e = $("#" + id); return e.type === "checkbox" ? e.checked : e.value; }))); } catch (e) {}
+  }
+  try {
+    var spSaved = JSON.parse(localStorage.getItem("folio-stamp") || "null");
+    if (spSaved && spSaved.length === SP_IDS.length) SP_IDS.forEach(function (id, k) {
+      var e = $("#" + id), v = spSaved[k];
+      if (e.type === "checkbox") { if (typeof v === "boolean") e.checked = v; }
+      else if (e.tagName === "SELECT") { if (Array.from(e.options).some(function (o) { return o.value === v; })) e.value = v; }
+      else if (typeof v === "string") e.value = v;
+    });
+  } catch (e) {}
+  SP_IDS.forEach(function (id) {
+    var e = $("#" + id);
+    e.addEventListener(e.type === "text" || e.type === "number" ? "input" : "change", function () { spSave(); updateStampUI(); });
+  });
+  updateStampUI();
+
+  /* geometri halaman: kotak yang terlihat + putaran bawaan halaman, supaya posisi benar juga di halaman yang diputar */
+  function spGeom(page) {
+    var box = page.getCropBox(), r = ((page.getRotation().angle % 360) + 360) % 360, sw = r === 90 || r === 270;
+    return { x0: box.x, y0: box.y, W: box.width, H: box.height, r: r, vw: sw ? box.height : box.width, vh: sw ? box.width : box.height };
+  }
+  /* titik (u, v) di tampilan (u ke kanan, v ke atas) dan sudut tulisan th, diubah ke koordinat halaman */
+  function spMap(g, u, v, th) {
+    if (g.r === 90) return { x: g.x0 + g.W - v, y: g.y0 + u, a: th + 90 };
+    if (g.r === 180) return { x: g.x0 + g.W - u, y: g.y0 + g.H - v, a: th + 180 };
+    if (g.r === 270) return { x: g.x0 + v, y: g.y0 + g.H - u, a: th + 270 };
+    return { x: g.x0 + u, y: g.y0 + v, a: th };
+  }
+  function spDraw(page, g, text, font, size, u, v, th, color, opacity) {
+    var m = spMap(g, u, v, th), c = SP_COLORS[color] || SP_COLORS.black;
+    page.drawText(text, { x: m.x, y: m.y, size: size, font: font, color: rgb(c[0], c[1], c[2]), opacity: opacity, rotate: degrees(m.a % 360) });
+  }
+  function spIdx(str, max) { return Array.from(new Set(parseRange(str, max))).sort(function (a, b) { return a - b; }); }
+  $("#go-stamp").onclick = function () {
+    run("stamp", async function () {
+      var it = S.stamp, wmOn = $("#sp-wm-on").checked, nrOn = $("#sp-nr-on").checked;
+      if (!wmOn && !nrOn) throw new Error("Centang watermark atau nomor halaman dulu.");
+      if (spWmBad()) throw new Error("Tulisan watermark kosong atau memuat huruf yang belum didukung.");
+      var wmIdx = wmOn ? spIdx($("#sp-wm-range").value, it.pages) : [], nrIdx = nrOn ? spIdx($("#sp-nr-range").value, it.pages) : [];
+      var wmSet = new Set(wmIdx), nrMap = {};
+      var start = parseInt($("#sp-nr-start").value, 10); if (isNaN(start) || start < 0) start = 1;
+      nrIdx.forEach(function (p, k) { nrMap[p] = start + k; });
+      var total = start + nrIdx.length - 1;
+      var todo = Array.from(new Set(wmIdx.concat(nrIdx))).sort(function (a, b) { return a - b; });
+      var doc = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
+      var fWm = await doc.embedFont(StandardFonts.HelveticaBold), fNr = await doc.embedFont(StandardFonts.Helvetica);
+      var wmText = $("#sp-wm-text").value.trim(), diag = $("#sp-wm-pos").value === "diag";
+      var wmFrac = { s: 0.45, m: 0.65, l: 0.85 }[$("#sp-wm-size").value], wmCap = { s: 0.1, m: 0.16, l: 0.24 }[$("#sp-wm-size").value];
+      var wmOpa = parseFloat($("#sp-wm-opa").value), wmCol = $("#sp-wm-color").value;
+      var nrSize = parseInt($("#sp-nr-size").value, 10), nrPos = $("#sp-nr-pos").value, nrCol = $("#sp-nr-color").value, nrFmt = $("#sp-nr-fmt").value;
+      var w1 = fWm.widthOfTextAtSize(wmText, 1), MARGIN = 28;
+      for (var i = 0; i < todo.length; i++) {
+        step("stamp", i + 1, todo.length, "Memasang di halaman " + (todo[i] + 1) + " dari " + it.pages + "…");
+        if (i % 15 === 14) await new Promise(function (r) { setTimeout(r, 0); });
+        var pi = todo[i], page = doc.getPage(pi), g = spGeom(page);
+        if (wmSet.has(pi)) {
+          var th = diag ? 45 : 0, rad = th * Math.PI / 180, cs = Math.cos(rad), sn = Math.sin(rad);
+          var L = diag ? Math.min(g.vw / cs, g.vh / sn) : g.vw;
+          var size = Math.max(6, Math.min(wmFrac * L / w1, wmCap * Math.min(g.vw, g.vh))), w = w1 * size, capH = size * 0.7;
+          spDraw(page, g, wmText, fWm, size, g.vw / 2 - (w / 2) * cs + (capH / 2) * sn, g.vh / 2 - (w / 2) * sn - (capH / 2) * cs, th, wmCol, wmOpa);
+        }
+        if (nrMap[pi] != null) {
+          var n = nrMap[pi], label = nrFmt === "nt" ? n + " / " + total : nrFmt === "h" ? "Halaman " + n : nrFmt === "d" ? "- " + n + " -" : String(n);
+          var tw = fNr.widthOfTextAtSize(label, nrSize), col = nrPos.charAt(1), row = nrPos.charAt(0);
+          var u = col === "l" ? MARGIN : col === "r" ? g.vw - MARGIN - tw : (g.vw - tw) / 2;
+          var v = row === "b" ? MARGIN : g.vh - MARGIN - nrSize * 0.72;
+          spDraw(page, g, label, fNr, nrSize, u, v, 0, nrCol, 1);
+        }
+      }
+      step("stamp", todo.length, todo.length, "Menyimpan…");
+      var bytes = await doc.save();
+      await saveFile("stamp", outName("stamp", base(it.name) + "-cap") + ".pdf", bytes);
     });
   };
   /* ---------- Kompres PDF: render ulang tiap halaman jadi JPG ---------- */
