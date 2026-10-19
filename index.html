@@ -62,7 +62,7 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .privacy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 /* Pilihan alat */
-.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .tab {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   font: 500 13px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 12px;
@@ -187,6 +187,22 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 .status { font-size: 14px; min-height: 1.4em; margin-top: -8px; }
 .status.ok { color: var(--ok); }
 .status.err { color: var(--danger); }
+.pick-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.pick-bar .cnt { flex: 1 1 100%; font-size: 13.5px; color: var(--muted); }
+.pick-bar .btn { flex: none; min-height: 36px; padding: 6px 14px; font-size: 13px; border-radius: 10px; box-shadow: none; }
+.pick-wrap { max-height: 440px; overflow: auto; padding: 3px; margin: -3px; border-radius: 14px; }
+.pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--pk, 92px), 1fr)); gap: 10px; }
+.pick-size { flex: 1 1 100%; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.pick-size input { flex: 1; min-width: 0; accent-color: var(--accent); height: 28px; }
+.pk { position: relative; display: block; padding: 0; width: 100%; aspect-ratio: var(--ar, .707); border: 2px solid var(--line); border-radius: 12px; background: var(--surface-2); overflow: hidden; cursor: pointer; }
+.pk img { display: block; width: 100%; height: 100%; object-fit: contain; opacity: .45; transition: opacity .15s; }
+.pk[aria-pressed="true"] { border-color: var(--accent); }
+.pk[aria-pressed="true"] img { opacity: 1; }
+.pk .n { position: absolute; left: 6px; bottom: 6px; font: 500 11px var(--font-mono); background: rgba(20, 24, 38, .72); color: #fff; padding: 1px 7px; border-radius: 99px; }
+.pk .ck { position: absolute; right: 6px; top: 6px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; background: rgba(20, 24, 38, .3); box-shadow: 0 0 0 1px rgba(20, 24, 38, .25); color: #fff; font: 700 12px/16px var(--font-body); text-align: center; }
+.pk[aria-pressed="true"] .ck { background: var(--accent); }
+.pk[aria-pressed="true"] .ck::after { content: "✓"; }
+.pk:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .est { font-size: 13.5px; color: var(--muted); min-height: 1.4em; margin-top: -10px; }
 .est strong { color: var(--ink); font-weight: 600; }
 .btn.share { margin-top: 4px; align-self: flex-start; }
@@ -206,6 +222,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   .row { gap: 12px; padding: 10px; }
   .row .thumb { width: 72px; height: 72px; }
   .thumb-cell.first { width: 80px; }
+  .tabs { grid-template-columns: repeat(3, 1fr); }
   .tab { font-size: 12px; padding: 9px 2px; }
   .btn { flex: 1; }
   .v-body { padding: 12px; gap: 12px; }
@@ -233,6 +250,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>Kompres</button>
     <button class="tab" role="tab" id="tab-img" aria-controls="panel-img" aria-selected="false" data-tab="img">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-5-5L5 21"/></svg>Gambar</button>
+    <button class="tab" role="tab" id="tab-toimg" aria-controls="panel-toimg" aria-selected="false" data-tab="toimg">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/><path d="m8 18 3-3.5 2 2 2-2.5 1.5 2"/></svg>Ke gambar</button>
   </div>
 
   <section class="panel" id="panel-merge" role="tabpanel" aria-labelledby="tab-merge">
@@ -347,6 +366,35 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <div class="status" id="st-img" role="status" aria-live="polite"></div>
   </section>
 
+  <section class="panel" id="panel-toimg" role="tabpanel" aria-labelledby="tab-toimg" hidden>
+    <h2>PDF ke gambar</h2>
+    <p class="lead">Ubah halaman PDF menjadi JPG atau PNG. Banyak halaman diunduh sebagai satu ZIP.</p>
+    <div class="step"><i>1</i>Pilih file</div>
+    <label class="drop" data-drop="toimg"><strong>Pilih satu PDF atau seret ke sini</strong><span>File lama akan diganti</span><input type="file" id="in-toimg" accept="application/pdf,.pdf"></label>
+    <ul class="list" id="list-toimg"></ul>
+    <div class="step"><i>2</i>Pilih halaman dan format</div>
+    <div class="pick-bar" id="pickctl-toimg" hidden>
+      <div class="cnt" id="cnt-toimg" aria-live="polite"></div>
+      <button class="btn ghost" id="all-toimg" type="button">Pilih semua</button>
+      <button class="btn ghost" id="none-toimg" type="button">Kosongkan</button>
+      <label class="pick-size">Ukuran pratinjau <input type="range" id="pk-size" min="64" max="240" step="8" value="92"></label>
+    </div>
+    <div class="pick-wrap" id="pickwrap-toimg" hidden><div class="pick" id="pick-toimg"></div></div>
+    <div class="fields">
+      <div class="field"><label for="ti-fmt">Format gambar</label>
+        <select id="ti-fmt"><option value="jpg">JPG (file lebih kecil)</option><option value="png">PNG (lebih tajam, file besar)</option></select></div>
+      <div class="field"><label for="ti-dpi">Resolusi</label>
+        <select id="ti-dpi"><option value="100">100 dpi (layar)</option><option value="150" selected>150 dpi (seimbang)</option><option value="200">200 dpi (tajam)</option><option value="300">300 dpi (cetak)</option></select>
+        <span class="hint">Resolusi tinggi dan banyak halaman butuh memori besar di HP.</span></div>
+    </div>
+    <div class="step"><i>3</i>Nama file dan unduh</div>
+    <div class="fields">
+      <div class="field"><label for="name-toimg">Nama file</label><input type="text" id="name-toimg" placeholder="Otomatis dari nama file" autocomplete="off" spellcheck="false"><span class="hint">Dipakai untuk nama ZIP. .zip ditambahkan otomatis.</span></div>
+    </div>
+    <div class="actions"><button class="btn" id="go-toimg" type="button">Ubah ke gambar</button></div>
+    <div class="status" id="st-toimg" role="status" aria-live="polite"></div>
+  </section>
+
   <dialog id="viewer" aria-label="Pratinjau halaman">
   <div class="v-bar">
     <button class="icon-btn" id="v-prev" type="button" aria-label="Halaman sebelumnya">←</button>
@@ -389,8 +437,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   }
   var PDFDocument = PDFLib.PDFDocument, degrees = PDFLib.degrees, StandardFonts = PDFLib.StandardFonts, rgb = PDFLib.rgb;
   var $ = function (s) { return document.querySelector(s); };
-  var KEYS = ["merge", "split", "rotate", "compress", "img"];
-  var S = { merge: [], split: null, rotate: null, compress: null, img: [], ranges: [{ from: "1", to: "2" }] };
+  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg"];
+  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, img: [], ranges: [{ from: "1", to: "2" }] };
   var uid = 0, busy = false, MAXT = 1;
   if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
@@ -618,21 +666,24 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     var v = $("#name-" + key).value.replace(/[\\/:*?"<>|\u0000-\u001f]/g, "").replace(/\.pdf$/i, "").trim();
     return v || fallback;
   }
-  async function saveFile(key, name, bytes, quiet) {
+  async function saveBlob(key, name, blob, type) {
     try {
-      var blob = new Blob([bytes], { type: "application/pdf" });
-      (LAST[key] = LAST[key] || []).push({ name: name, blob: blob });
+      (LAST[key] = LAST[key] || []).push({ name: name, blob: blob, type: type });
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url; a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-      if (!quiet) status(key, "Selesai. " + name + " (" + fmtSize(bytes.length) + ") diunduh.", "ok");
       return true;
     } catch (e) {
       status(key, "File tidak bisa diunduh. Coba lagi atau gunakan browser lain.", "err");
       return false;
     }
+  }
+  async function saveFile(key, name, bytes, quiet) {
+    var ok = await saveBlob(key, name, new Blob([bytes], { type: "application/pdf" }), "application/pdf");
+    if (ok && !quiet) status(key, "Selesai. " + name + " (" + fmtSize(bytes.length) + ") diunduh.", "ok");
+    return ok;
   }
 
   function setBusy(v) { busy = v; refresh(); }
@@ -689,7 +740,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files })); } catch (e) { return false; }
   }
   var SHARE_OK = canShareFiles([new File([new Blob(["%PDF"])], "a.pdf", { type: "application/pdf" })]);
-  function toFiles(list) { return list.map(function (f) { return new File([f.blob], f.name, { type: "application/pdf" }); }); }
+  function toFiles(list) { return list.map(function (f) { return new File([f.blob], f.name, { type: f.type || "application/pdf" }); }); }
   function resetShare(key) { LAST[key] = []; var b = $("#share-" + key); if (b) b.hidden = true; }
   function showShare(key) {
     var b = $("#share-" + key), list = LAST[key] || [];
@@ -791,6 +842,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     $("#go-split").disabled = busy || !S.split;
     $("#go-rotate").disabled = busy || !S.rotate;
     $("#go-compress").disabled = busy || !S.compress;
+    $("#go-toimg").disabled = busy || !S.toimg || !S.toimg.sel || !S.toimg.sel.size;
     $("#go-img").disabled = busy || !S.img.length;
     $("#prev-img").disabled = busy || !S.img.length;
     $("#clear-img").disabled = busy || !S.img.length;
@@ -833,18 +885,28 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   function redraw() {
     renderRanges();
     renderList("merge", S.merge, "Belum ada file. Pilih minimal dua PDF.");
-    renderSingle("split"); renderSingle("rotate"); renderSingle("compress");
+    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick();
     renderList("img", S.img, "Belum ada gambar. Pilih satu atau lebih gambar.");
     refresh();
   }
 
   /* ---------- tab ---------- */
+  function selectTab(k) {
+    if (KEYS.indexOf(k) < 0) k = "merge";
+    document.querySelectorAll(".tab").forEach(function (x) { x.setAttribute("aria-selected", x.dataset.tab === k ? "true" : "false"); });
+    KEYS.forEach(function (key) { $("#panel-" + key).hidden = key !== k; });
+    /* ingat tab aktif: kalau browser memuat ulang halaman (mis. saat memilih file), pengguna tetap di tab yang sama */
+    try { sessionStorage.setItem("folio-tab", k); } catch (e) {}
+    try { history.replaceState(null, "", "#" + k); } catch (e) {}
+  }
   document.querySelectorAll(".tab").forEach(function (t) {
-    t.addEventListener("click", function () {
-      document.querySelectorAll(".tab").forEach(function (x) { x.setAttribute("aria-selected", x === t ? "true" : "false"); });
-      KEYS.forEach(function (k) { $("#panel-" + k).hidden = k !== t.dataset.tab; });
-    });
+    t.addEventListener("click", function () { selectTab(t.dataset.tab); });
   });
+  (function () {
+    var k = (location.hash || "").slice(1);
+    if (KEYS.indexOf(k) < 0) { try { k = sessionStorage.getItem("folio-tab") || ""; } catch (e) { k = ""; } }
+    if (KEYS.indexOf(k) >= 0 && k !== "merge") selectTab(k);
+  })();
 
   /* ---------- masukan file ---------- */
   async function takePdfs(key, files) {
@@ -969,14 +1031,14 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     if (!window.pdfjsLib) throw new Error("Kompres butuh pustaka pdf.js yang gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
     return pdfjsLib.getDocument({ data: it.bytes.slice(), verbosity: 0 });
   }
-  async function pageJpeg(page, cfg) {
+  async function pageJpeg(page, cfg, mime, cap) {
     var base = page.getViewport({ scale: 1 }), sc = cfg.dpi / 72, longest = Math.max(base.width, base.height) * sc;
-    if (longest > CMP_CAP) sc *= CMP_CAP / longest;
+    cap = cap || CMP_CAP; if (longest > cap) sc *= cap / longest;
     var vp = page.getViewport({ scale: sc }), cv = document.createElement("canvas");
     cv.width = Math.max(1, Math.round(vp.width)); cv.height = Math.max(1, Math.round(vp.height));
     var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
     await page.render({ canvasContext: cx, viewport: vp }).promise;
-    var bytes = await canvasBytes(cv, "image/jpeg", cfg.q);
+    var bytes = await canvasBytes(cv, mime || "image/jpeg", cfg.q);
     cv.width = cv.height = 0; page.cleanup();
     return { bytes: bytes, w: base.width, h: base.height };
   }
@@ -1041,6 +1103,140 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       } finally { if (pdf) pdf.destroy(); }
     });
   };
+  /* ---------- PDF ke gambar ---------- */
+  var CRC_T = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  /* ZIP tanpa kompresi (gambar sudah terkompres), tanpa pustaka tambahan */
+  function makeZip(files) {
+    var enc = new TextEncoder(), parts = [], cd = [], off = 0, d = new Date(), cdSize = 0;
+    var dt = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), dd = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    files.forEach(function (f) {
+      var nm = enc.encode(f.name), crc = crc32(f.bytes), sz = f.bytes.length;
+      var lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, dt, true); lh.setUint16(12, dd, true); lh.setUint32(14, crc, true); lh.setUint32(18, sz, true); lh.setUint32(22, sz, true);
+      lh.setUint16(26, nm.length, true); lh.setUint16(28, 0, true);
+      parts.push(lh.buffer, nm, f.bytes);
+      var ch = new DataView(new ArrayBuffer(46));
+      ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+      ch.setUint16(12, dt, true); ch.setUint16(14, dd, true); ch.setUint32(16, crc, true); ch.setUint32(20, sz, true); ch.setUint32(24, sz, true);
+      ch.setUint16(28, nm.length, true); ch.setUint32(42, off, true);
+      cd.push(ch.buffer, nm); cdSize += 46 + nm.length; off += 30 + nm.length + sz;
+    });
+    var end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, cdSize, true); end.setUint32(16, off, true);
+    return new Blob(parts.concat(cd, [end.buffer]), { type: "application/zip" });
+  }
+
+  var PICK = { it: null, doc: null, io: null, q: Promise.resolve(), tk: 0 };
+  function disposePick() {
+    if (PICK.io) { PICK.io.disconnect(); PICK.io = null; }
+    if (PICK.doc) { PICK.doc.then(function (d) { d.destroy(); }, function () {}); PICK.doc = null; }
+    PICK.it = null; PICK.tk++;
+  }
+  function updatePick() {
+    var it = S.toimg; if (!it) return;
+    $("#cnt-toimg").textContent = it.sel.size + " dari " + it.pages + " halaman dipilih";
+    refresh();
+  }
+  function loadPickThumb(btn, p, it, tk) {
+    if (btn._loaded) return; btn._loaded = true;
+    PICK.q = PICK.q.then(async function () {
+      if (PICK.tk !== tk) return;
+      try {
+        if (!it.pk) it.pk = {};
+        var url = it.pk[p];
+        if (!url) {
+          if (!PICK.doc) PICK.doc = openPdfjs(it).promise;
+          var page = await (await PICK.doc).getPage(p), w0 = page.getViewport({ scale: 1 }).width, vp = page.getViewport({ scale: 260 / w0 });
+          var cv = document.createElement("canvas"); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+          var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+          await page.render({ canvasContext: cx, viewport: vp }).promise;
+          url = cv.toDataURL("image/jpeg", 0.7); it.pk[p] = url; page.cleanup();
+        }
+        if (PICK.tk !== tk) return;
+        var im = document.createElement("img"); im.src = url; im.alt = ""; btn.insertBefore(im, btn.firstChild);
+      } catch (e) { btn._loaded = false; }
+    });
+  }
+  function renderPick() {
+    var it = S.toimg, grid = $("#pick-toimg");
+    if (PICK.it === it && (it || !grid.firstChild)) return;
+    disposePick(); grid.textContent = "";
+    $("#pickwrap-toimg").hidden = $("#pickctl-toimg").hidden = !it;
+    if (!it) return;
+    PICK.it = it; var tk = PICK.tk;
+    if (!it.sel) { it.sel = new Set(); for (var a = 1; a <= it.pages; a++) it.sel.add(a); }
+    grid.style.setProperty("--ar", String(it.w && it.h ? it.w / it.h : 0.707));
+    var io = PICK.io = window.IntersectionObserver ? new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { if (en.isIntersecting) { io.unobserve(en.target); loadPickThumb(en.target, en.target._p, it, tk); } });
+    }, { root: $("#pickwrap-toimg"), rootMargin: "300px" }) : null;
+    for (var p = 1; p <= it.pages; p++) {
+      (function (p) {
+        var b = el("button", "pk"); b.type = "button"; b._p = p;
+        b.setAttribute("aria-pressed", it.sel.has(p) ? "true" : "false"); b.setAttribute("aria-label", "Halaman " + p);
+        b.appendChild(el("span", "n", String(p))); b.appendChild(el("span", "ck"));
+        b.onclick = function () {
+          if (it.sel.has(p)) it.sel.delete(p); else it.sel.add(p);
+          b.setAttribute("aria-pressed", it.sel.has(p) ? "true" : "false"); updatePick();
+        };
+        grid.appendChild(b);
+        if (io) io.observe(b); else loadPickThumb(b, p, it, tk);
+      })(p);
+    }
+    updatePick();
+  }
+  function pickAll(on) {
+    var it = S.toimg; if (!it) return;
+    it.sel.clear();
+    $("#pick-toimg").querySelectorAll(".pk").forEach(function (b) { if (on) it.sel.add(b._p); b.setAttribute("aria-pressed", on ? "true" : "false"); });
+    updatePick();
+  }
+  (function () {
+    var rg = $("#pk-size"), saved = null;
+    try { saved = parseInt(localStorage.getItem("folio-pk"), 10); } catch (e) {}
+    if (saved >= 64 && saved <= 240) rg.value = saved;
+    var apply = function () { $("#pick-toimg").style.setProperty("--pk", rg.value + "px"); };
+    rg.addEventListener("input", apply);
+    rg.addEventListener("change", function () { try { localStorage.setItem("folio-pk", rg.value); } catch (e) {} });
+    apply();
+  })();
+  $("#all-toimg").onclick = function () { pickAll(true); };
+  $("#none-toimg").onclick = function () { pickAll(false); };
+
+  var TI_CAP = 4096, TI_MAX_BYTES = 450 * 1048576;
+  $("#go-toimg").onclick = function () {
+    run("toimg", async function () {
+      var it = S.toimg, pages = Array.from(it.sel).sort(function (a, b) { return a - b; });
+      if (!pages.length) throw new Error("Pilih minimal satu halaman.");
+      var png = $("#ti-fmt").value === "png", mime = png ? "image/png" : "image/jpeg", ext = png ? ".png" : ".jpg";
+      var cfg = { dpi: parseInt($("#ti-dpi").value, 10) || 150, q: 0.88 }, pdf = null;
+      var loading = openPdfjs(it), files = [], total = 0, digits = String(it.pages).length, nm = base(it.name);
+      try {
+        pdf = await loading.promise;
+        for (var k = 0; k < pages.length; k++) {
+          step("toimg", k + 1, pages.length, "Mengubah halaman " + pages[k] + " (" + (k + 1) + " dari " + pages.length + ")…");
+          await new Promise(function (r) { setTimeout(r, 0); });
+          var r = await pageJpeg(await pdf.getPage(pages[k]), cfg, mime, TI_CAP);
+          total += r.bytes.length;
+          if (total > TI_MAX_BYTES) throw new Error("Hasilnya terlalu besar untuk diproses di perangkat ini. Pilih lebih sedikit halaman, resolusi lebih rendah, atau format JPG.");
+          files.push({ name: nm + "-hlm" + String(pages[k]).padStart(digits, "0") + ext, bytes: r.bytes });
+        }
+      } finally { if (pdf) pdf.destroy(); }
+      checkCancel();
+      if (files.length === 1) {
+        await saveBlob("toimg", files[0].name, new Blob([files[0].bytes], { type: mime }), mime);
+        status("toimg", "Selesai. " + files[0].name + " (" + fmtSize(files[0].bytes.length) + ") diunduh.", "ok");
+        return;
+      }
+      setProgress("toimg", null); status("toimg", "Membuat ZIP…", "busy");
+      await new Promise(function (r2) { setTimeout(r2, 0); });
+      var zip = makeZip(files), zname = outName("toimg", nm + "-gambar") + ".zip";
+      await saveBlob("toimg", zname, zip, "application/zip");
+      status("toimg", "Selesai. " + zname + " berisi " + files.length + " gambar (" + fmtSize(zip.size) + ") diunduh.", "ok");
+    });
+  };
+
   var QUAL = { bal: { max: 2000, q: 0.85, f: 1.5 }, small: { max: 1400, q: 0.7, f: 0.85 } };
   var PV_MAX = 1200;
   function exifOrientation(b) {
