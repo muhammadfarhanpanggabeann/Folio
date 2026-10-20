@@ -239,6 +239,8 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 .sg-item.sel { outline: 2px dashed var(--accent); outline-offset: 4px; }
 .sg-h { display: none; position: absolute; right: -18px; bottom: -18px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.45); touch-action: none; cursor: nwse-resize; }
 .sg-item.sel .sg-h { display: block; }
+.sg-zoom { position: absolute; top: 8px; right: 8px; z-index: 3; width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.92); color: #1a2033; font-size: 18px; line-height: 1; cursor: zoom-in; box-shadow: 0 2px 8px rgba(26,32,51,.2); }
+.sg-stage.loading .sg-zoom { display: none; }
 .est { font-size: 13.5px; color: var(--muted); min-height: 1.4em; margin-top: -10px; }
 .est strong { color: var(--ink); font-weight: 600; }
 .btn.share { margin-top: 4px; align-self: flex-start; }
@@ -598,7 +600,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     </div>
     <div class="sg-nav"><button class="icon-btn" id="sg-prev" type="button" aria-label="Halaman sebelumnya">‹</button><span id="sg-pgl"></span><button class="icon-btn" id="sg-next" type="button" aria-label="Halaman berikutnya">›</button></div>
     <div class="ed-info" id="sg-info" aria-live="polite"></div>
-    <div class="sg-stage loading" id="sg-stage"><img id="sg-img" alt="Halaman PDF"><div class="sg-items" id="sg-items"></div></div>
+    <div class="sg-stage loading" id="sg-stage"><img id="sg-img" alt="Halaman PDF"><div class="sg-items" id="sg-items"></div><button type="button" class="sg-zoom" id="sg-zoom" aria-label="Lihat semua halaman dengan tanda tangan">⤢</button></div>
     <div class="step"><i>4</i>Nama file dan unduh</div>
     <div class="fields">
       <div class="field"><label for="name-sign">Nama file</label><input type="text" id="name-sign" placeholder="Otomatis dari nama file" autocomplete="off" spellcheck="false"><span class="hint">.pdf ditambahkan otomatis.</span></div>
@@ -829,6 +831,7 @@ window.folioStart = function () {
   dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener("close", function () {
     if (V.it && !V.list) { V.it.lastPage = V.i; if (V.it.preview) lastImgPage = V.i; }
+    if (V.it && V.it.sgBack) V.it.sgBack(V.i);
     if (dlBuilding && CUR) CUR.cancelled = true;
     V.token++; if (V.io) { V.io.disconnect(); V.io = null; }
     if (V.docP) { V.docP.then(function (d) { d.destroy(); }, function () {}); V.docP = null; }
@@ -1641,13 +1644,13 @@ window.folioStart = function () {
     $("#sg-stage").classList.toggle("armed", !!SGV.armed);
     var nTxt = items.filter(function (m) { return m.kind === "txt"; }).length, nSig = items.length - nTxt;
     $("#sg-info").textContent = SGV.armed ? "Ketuk halaman untuk menaruh " + (SGV.armed === "sig" ? "tanda tangan" : "teks") + "." :
-      !items.length ? (SGV.url ? "Tekan \"+ Tanda tangan\", lalu ketuk halaman." : "Gambar tanda tangan dulu di atas, atau tulis teks.") :
-      "Ketuk lalu geser untuk memindah. Tarik titik di sudut untuk mengubah ukuran. Terpasang: " + nSig + " tanda tangan, " + nTxt + " teks.";
+      !items.length ? (SGV.url ? "Tekan \"+ Tanda tangan\", lalu ketuk halaman. Ketuk ⤢ untuk melihat semua halaman." : "Gambar tanda tangan dulu di atas, atau tulis teks.") :
+      "Ketuk lalu geser untuk memindah. Tarik titik di sudut untuk mengubah ukuran. Ketuk halaman kosong atau ⤢ untuk melihat semua halaman. Terpasang: " + nSig + " tanda tangan, " + nTxt + " teks.";
     $("#go-sign").disabled = busy || !it || !items.length;
   }
   $("#sg-stage").addEventListener("click", function (e) {
     var st = sgState(); if (!st || busy) return;
-    if (!SGV.armed) { if (SGV.sel != null) sgSelect(null); return; }
+    if (!SGV.armed) { if (SGV.sel != null) sgSelect(null); else sgPreview(); return; }
     var r = this.getBoundingClientRect(), cx = sgClamp((e.clientX - r.left) / r.width, 0, 1), cy = sgClamp((e.clientY - r.top) / r.height, 0, 1);
     var m = SGV.armed === "sig" ? { id: ++uid, kind: "sig", page: st.cur, cx: cx, cy: cy, w: 0.3 } :
       { id: ++uid, kind: "txt", page: st.cur, cx: cx, cy: cy, size: 0.04, text: $("#sg-text").value, color: $("#sg-tcolor").value };
@@ -1694,34 +1697,56 @@ window.folioStart = function () {
     };
   });
   function sgBytes(url) { var b = atob(url.split(",")[1]), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  /* menyusun PDF hasil dari daftar item; dipakai oleh Simpan dan Pratinjau */
+  async function sgApply(it, items, what) {
+    var needSig = items.some(function (m) { return m.kind === "sig"; });
+    if (needSig && !SGV.url) throw new Error("Tanda tangan belum ada.");
+    if (items.some(function (m) { return m.kind === "txt" && !SP_LATIN.test(m.text); })) throw new Error("Ada teks dengan huruf yang belum didukung. Ganti dengan huruf Latin.");
+    step("sign", 1, items.length + 2, "Membaca file…");
+    var doc = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
+    var font = await doc.embedFont(StandardFonts.Helvetica), png = needSig ? await doc.embedPng(sgBytes(SGV.url)) : null, ar = SGV.ar;
+    for (var i = 0; i < items.length; i++) {
+      step("sign", i + 2, items.length + 2, what + " " + (i + 1) + " dari " + items.length + "…");
+      if (i % 15 === 14) await new Promise(function (r) { setTimeout(r, 0); });
+      var m = items[i], page = doc.getPage(m.page), g = spGeom(page);
+      if (m.kind === "sig") {
+        var wPt = m.w * g.vw, hPt = wPt / ar, mm = spMap(g, m.cx * g.vw - wPt / 2, (1 - m.cy) * g.vh - hPt / 2, 0);
+        page.drawImage(png, { x: mm.x, y: mm.y, width: wPt, height: hPt, rotate: degrees(mm.a % 360) });
+      } else {
+        var size = m.size * g.vw, tw = font.widthOfTextAtSize(m.text, size);
+        spDraw(page, g, m.text, font, size, m.cx * g.vw - tw / 2, (1 - m.cy) * g.vh - 0.3465 * size, 0, m.color, 1);
+      }
+    }
+    step("sign", items.length + 2, items.length + 2, "Menyimpan…");
+    return doc.save();
+  }
   $("#go-sign").onclick = function () {
     run("sign", async function () {
       var it = S.sign, st = sgState(), items = st.items.slice();
       if (!items.length) throw new Error("Taruh tanda tangan atau teks dulu.");
-      var needSig = items.some(function (m) { return m.kind === "sig"; });
-      if (needSig && !SGV.url) throw new Error("Tanda tangan belum ada.");
-      if (items.some(function (m) { return m.kind === "txt" && !SP_LATIN.test(m.text); })) throw new Error("Ada teks dengan huruf yang belum didukung. Ganti dengan huruf Latin.");
-      step("sign", 1, items.length + 2, "Membaca file…");
-      var doc = await PDFDocument.load(it.bytes, { ignoreEncryption: true });
-      var font = await doc.embedFont(StandardFonts.Helvetica), png = needSig ? await doc.embedPng(sgBytes(SGV.url)) : null, ar = SGV.ar;
-      for (var i = 0; i < items.length; i++) {
-        step("sign", i + 2, items.length + 2, "Memasang " + (i + 1) + " dari " + items.length + "…");
-        if (i % 15 === 14) await new Promise(function (r) { setTimeout(r, 0); });
-        var m = items[i], page = doc.getPage(m.page), g = spGeom(page);
-        if (m.kind === "sig") {
-          var wPt = m.w * g.vw, hPt = wPt / ar, mm = spMap(g, m.cx * g.vw - wPt / 2, (1 - m.cy) * g.vh - hPt / 2, 0);
-          page.drawImage(png, { x: mm.x, y: mm.y, width: wPt, height: hPt, rotate: degrees(mm.a % 360) });
-        } else {
-          var size = m.size * g.vw, tw = font.widthOfTextAtSize(m.text, size);
-          spDraw(page, g, m.text, font, size, m.cx * g.vw - tw / 2, (1 - m.cy) * g.vh - 0.3465 * size, 0, m.color, 1);
-        }
-      }
-      step("sign", items.length + 2, items.length + 2, "Menyimpan…");
-      var bytes = await doc.save();
+      var bytes = await sgApply(it, items, "Memasang");
       await saveFile("sign", outName("sign", base(it.name) + "-ttd") + ".pdf", bytes);
     });
   };
-
+  /* pratinjau semua halaman di penampil besar (gulir horizontal/vertikal), lengkap dengan tanda tangan dan teks yang sudah ditaruh */
+  function sgPreview() {
+    var it = S.sign, st = sgState(); if (!it || !st || busy) return;
+    if (!window.pdfjsLib) { status("sign", "Pratinjau butuh pustaka pdf.js yang gagal dimuat. Muat ulang halaman.", "err"); return; }
+    run("sign", async function () {
+      var items = st.items.slice(), key = JSON.stringify(items) + "|" + (SGV.url || ""), bytes;
+      if (!items.length) bytes = it.bytes;
+      else if (it.sgPv && it.sgPv.key === key) bytes = it.sgPv.bytes;
+      else { bytes = await sgApply(it, items, "Menyiapkan pratinjau"); it.sgPv = { key: key, bytes: bytes }; }
+      status("sign", "");
+      var pv = { id: ++uid, name: it.name, bytes: bytes, pages: it.pages, w: it.w, h: it.h, size: bytes.length };
+      pv.sgBack = function (i) {
+        if (S.sign !== it || i === st.cur || i < 0 || i >= it.pages) return;
+        st.cur = i; SGV.sel = null; sgSlider(null); sgShow(); updateSignUI();
+      };
+      openViewer(pv, st.cur);
+    });
+  }
+  $("#sg-zoom").addEventListener("click", function (e) { e.stopPropagation(); sgPreview(); });
   /* ---------- Kompres PDF: render ulang tiap halaman jadi JPG ---------- */
   var CQ = { high: { dpi: 150, q: 0.8 }, bal: { dpi: 110, q: 0.7 }, small: { dpi: 72, q: 0.55 } }, CMP_CAP = 3000;
   function openPdfjs(it) {
