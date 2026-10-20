@@ -1251,11 +1251,15 @@ window.folioStart = function () {
     got.forEach(makeThumbs);
   }
   async function takeImages(files) {
-    var n = 0, skipped = 0;
-    Array.from(files).forEach(function (f) {
-      if (!/^image\//.test(f.type)) { status("img", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); skipped++; return; }
-      S.img.push({ id: ++uid, name: f.name, file: f, size: f.size, url: URL.createObjectURL(f) }); n++;
-    });
+    var n = 0, skipped = 0, list = Array.from(files), i;
+    for (i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (!/^image\//.test(f.type)) { status("img", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); skipped++; continue; }
+      try {
+        var kept = await keepPhoto(f);
+        S.img.push({ id: ++uid, name: f.name, file: kept.file, size: f.size, url: URL.createObjectURL(kept.file) }); n++;
+      } catch (e) { status("img", "\"" + f.name + "\" dilewati: " + friendlyErr(e, new Uint8Array(0)) + ".", "err"); skipped++; }
+    }
     if (n && !skipped) status("img", "");
     redraw();
   }
@@ -2301,7 +2305,22 @@ window.folioStart = function () {
     }
     return "";
   }
+  var READ_MSG = "file foto tidak bisa dibaca lagi oleh browser (izin akses file hilang). Pilih ulang fotonya, sebaiknya dari folder Unduhan atau penyimpanan perangkat, bukan dari galeri cloud";
+  function isReadErr(e) { return !!e && (e.name === "NotReadableError" || e.name === "NotFoundError" || e.name === "SecurityError" || /could not be read|permission problems|not.?readable/i.test(e.message || "")); }
+  /* baca isi file; error izin file diterjemahkan ke pesan yang jelas */
+  async function readBuf(file) {
+    try { return new Uint8Array(await file.arrayBuffer()); }
+    catch (e) { throw isReadErr(e) ? new Error(READ_MSG) : e; }
+  }
+  /* salin isi foto ke memori sekali saat dipilih. Setelah itu proses tidak lagi bergantung pada izin file asli,
+     yang bisa dicabut Android beberapa saat setelah dipilih */
+  async function keepPhoto(f) {
+    var buf = await readBuf(f);
+    var type = f.type || (sniffFormat(buf) === "HEIC" ? "image/heic" : "");
+    return { buf: buf, file: new File([buf], f.name, { type: type }) };
+  }
   function friendlyErr(e, buf) {
+    if (isReadErr(e) || (e && e.message === READ_MSG)) return READ_MSG;
     var f = sniffFormat(buf);
     if (f === "HEIC") return "foto HEIC tidak bisa dibaca (file rusak, terlalu besar untuk memori perangkat, atau memuat pustaka HEIC gagal). Coba ubah ke JPG dulu";
     if (f) return "format " + f + " belum didukung browser ini, ubah ke JPG atau PNG dulu";
@@ -2382,7 +2401,7 @@ window.folioStart = function () {
   }
   /* satu gambar -> gambar siap pakai di PDF. Pratinjau memakai salinan ringan (dicache), unduhan memakai kualitas pilihan */
   async function imgForPdf(doc, it, mode, forPreview) {
-    var buf = new Uint8Array(await it.file.arrayBuffer());
+    var buf = await readBuf(it.file);
     try {
       if (forPreview) {
         if (!it.pv) {
@@ -2554,7 +2573,7 @@ window.folioStart = function () {
     return o;
   }
   async function scnDecode(it) {
-    var buf = new Uint8Array(await it.file.arrayBuffer());
+    var buf = await readBuf(it.file);
     try {
       var d = await decodeScaled(it.file, buf, SCN_MAX), cv = d.canvas;
       for (var r = 0; r < it.rot; r++) cv = scnRot(cv);
@@ -2692,9 +2711,9 @@ window.folioStart = function () {
       if (!/^image\//.test(f.type) && !/\.(heic|heif)$/i.test(f.name)) { status("scan", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); continue; }
       status("scan", "Membaca foto " + (i + 1) + " dari " + list.length + "…", "busy");
       try {
-        buf = new Uint8Array(await f.arrayBuffer());
-        var d = await decodeScaled(f, buf, 160);
-        S.scan.push({ id: ++uid, name: f.name, file: f, size: f.size, thumb: d.canvas.toDataURL("image/jpeg", 0.7), rot: 0, quad: scnCopy(SCN_DEF), set: false, cv: null, pvc: null });
+        var kept = await keepPhoto(f); buf = kept.buf;
+        var d = await decodeScaled(kept.file, buf, 160);
+        S.scan.push({ id: ++uid, name: f.name, file: kept.file, size: f.size, thumb: d.canvas.toDataURL("image/jpeg", 0.7), rot: 0, quad: scnCopy(SCN_DEF), set: false, cv: null, pvc: null });
         n++;
       } catch (e) { status("scan", "\"" + f.name + "\" dilewati: " + friendlyErr(e, buf || new Uint8Array(0)) + ".", "err"); }
     }
