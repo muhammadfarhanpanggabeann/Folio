@@ -1,7 +1,7 @@
-var VERSION = "folio-v13";
+var VERSION = "folio-v14";
 var CORE = [
   "./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png",
-  "./lib/pdf-lib.min.js", "./lib/pdf.min.mjs", "./lib/pdf.worker.min.mjs"
+  "./lib/pdf-lib.min.js", "./lib/pdf.min.mjs", "./lib/pdf.worker.min.mjs", "./lib/libheif-bundle.js"
 ];
 
 self.addEventListener("install", function (e) {

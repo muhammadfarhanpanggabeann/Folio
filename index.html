@@ -329,7 +329,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
     <h2>Pindai foto kertas</h2>
     <p class="lead">Foto kertas dari samping pun bisa jadi halaman yang lurus dan bersih. Tandai 4 sudut kertas, pilih filter, lalu simpan jadi PDF.</p>
     <div class="step"><i>1</i>Pilih foto</div>
-    <label class="drop" data-drop="scan"><strong>Pilih foto atau seret ke sini</strong><span>Bisa lebih dari satu. Satu foto jadi satu halaman</span><input type="file" id="in-scan" accept="image/*" multiple></label>
+    <label class="drop" data-drop="scan"><strong>Pilih foto atau seret ke sini</strong><span>Bisa lebih dari satu. Satu foto jadi satu halaman. HEIC dari iPhone juga bisa</span><input type="file" id="in-scan" accept="image/*,.heic,.heif" multiple></label>
     <ul class="list" id="list-scan"></ul>
     <div id="scn-work" hidden>
       <div class="step"><i>2</i>Tandai 4 sudut kertas</div>
@@ -2303,11 +2303,44 @@ window.folioStart = function () {
   }
   function friendlyErr(e, buf) {
     var f = sniffFormat(buf);
+    if (f === "HEIC") return "foto HEIC tidak bisa dibaca (file rusak, terlalu besar untuk memori perangkat, atau memuat pustaka HEIC gagal). Coba ubah ke JPG dulu";
     if (f) return "format " + f + " belum didukung browser ini, ubah ke JPG atau PNG dulu";
     var m = e && e.message ? e.message : "";
     if (/terlalu besar/.test(m)) return m;
     if (/could not be decoded|decode|InvalidState|source image/i.test(m)) return "browser tidak bisa membaca gambar ini (file rusak atau formatnya tidak didukung)";
     return m || "error tidak dikenal";
+  }
+  /* HEIC: browser selain Safari tidak bisa membacanya, jadi dibaca dengan libheif (WebAssembly lokal, dimuat hanya saat dibutuhkan) */
+  var heifLib = null;
+  function loadHeif() {
+    if (heifLib) return heifLib;
+    heifLib = new Promise(function (res, rej) {
+      var sc = document.createElement("script"); sc.src = "lib/libheif-bundle.js";
+      sc.onload = function () { try { var L = window.libheif; res(typeof L === "function" ? L() : L); } catch (e) { rej(e); } };
+      sc.onerror = function () { rej(new Error("pustaka HEIC gagal dimuat")); };
+      document.head.appendChild(sc);
+    });
+    heifLib.catch(function () { heifLib = null; });
+    return heifLib;
+  }
+  async function decodeHeic(buf, maxSide) {
+    var L = await loadHeif();
+    var imgs = new L.HeifDecoder().decode(buf);
+    if (!imgs || !imgs.length) throw new Error("HEIC tidak berisi gambar");
+    var im = imgs[0], w = im.get_width(), h = im.get_height();
+    if (!w || !h) throw new Error("ukuran gambar tidak terbaca");
+    if (w * h > 120e6) throw new Error("foto HEIC terlalu besar");
+    var full = document.createElement("canvas"); full.width = w; full.height = h;
+    var fx = full.getContext("2d"), data = fx.createImageData(w, h);
+    await new Promise(function (res, rej) { im.display(data, function (r) { r ? res() : rej(new Error("HEIC gagal didekode")); }); });
+    fx.putImageData(data, 0, 0);
+    try { im.free && im.free(); } catch (e) {}
+    var k = Math.min(1, maxSide / Math.max(w, h));
+    if (k >= 1) return { canvas: full, ow: w, oh: h };
+    var cv = document.createElement("canvas"); cv.width = Math.max(1, Math.round(w * k)); cv.height = Math.max(1, Math.round(h * k));
+    var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.imageSmoothingQuality = "high"; cx.drawImage(full, 0, 0, cv.width, cv.height);
+    full.width = full.height = 0;
+    return { canvas: cv, ow: w, oh: h };
   }
   /* decode langsung ke ukuran kecil; mengembalikan kanvas dan ukuran asli (sudah memperhitungkan rotasi EXIF) */
   async function decodeScaled(file, buf, maxSide) {
@@ -2322,6 +2355,7 @@ window.folioStart = function () {
       }
     }
     if (!src) { try { src = await createImageBitmap(file); } catch (e) { lastErr = lastErr || e; src = null; } }
+    if (!src && sniffFormat(buf) === "HEIC") return decodeHeic(buf, maxSide);
     var sw, sh, drawable, url = null;
     if (src) { sw = src.width; sh = src.height; drawable = src; }
     else {
@@ -2655,7 +2689,7 @@ window.folioStart = function () {
     var n = 0, list = Array.from(files), i;
     for (i = 0; i < list.length; i++) {
       var f = list[i], buf = null;
-      if (!/^image\//.test(f.type)) { status("scan", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); continue; }
+      if (!/^image\//.test(f.type) && !/\.(heic|heif)$/i.test(f.name)) { status("scan", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); continue; }
       status("scan", "Membaca foto " + (i + 1) + " dari " + list.length + "…", "busy");
       try {
         buf = new Uint8Array(await f.arrayBuffer());
