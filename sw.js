@@ -1,4 +1,4 @@
-var VERSION = "folio-v15";
+var VERSION = "folio-v17";
 var CORE = [
   "./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png",
   "./lib/pdf-lib.min.js", "./lib/pdf.min.mjs", "./lib/pdf.worker.min.mjs", "./lib/libheif-bundle.js"
