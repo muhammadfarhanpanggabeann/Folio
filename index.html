@@ -702,7 +702,7 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
 <footer>Folio · diproses lokal dengan pdf-lib</footer>
 </div>
 
-<script>if("serviceWorker" in navigator && location.protocol !== "file:") window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });</script>
+<script>if("serviceWorker" in navigator && location.protocol !== "file:" && !(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform())) window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });</script>
 <script src="lib/pdf-lib.min.js"></script>
 <script>
 window.folioStart = function () {
@@ -721,7 +721,17 @@ window.folioStart = function () {
   function fmtSize(n) { return n < 1048576 ? Math.max(1, Math.round(n / 1024)) + " KB" : (n / 1048576).toFixed(1) + " MB"; }
   function base(name) { return name.replace(/\.[^.]+$/, ""); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-  function status(key, msg, kind) { var s = $("#st-" + (key === "duplexb" ? "duplex" : key)); s.textContent = msg || ""; s.className = "status " + (kind || ""); }
+  /* ---------- aplikasi Android (Capacitor): simpan lewat plugin native, bukan <a download> ---------- */
+  var CAP = (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) ? (Capacitor.Plugins || {}) : null;
+  function blobToB64(blob) {
+    return new Promise(function (res, rej) {
+      var r = new FileReader();
+      r.onload = function () { res(String(r.result).split(",")[1] || ""); };
+      r.onerror = function () { rej(r.error); };
+      r.readAsDataURL(blob);
+    });
+  }
+  function status(key, msg, kind) { if (CAP && msg) msg = msg.replace(/diunduh/g, "disimpan di Documents/Folio"); var s = $("#st-" + (key === "duplexb" ? "duplex" : key)); s.textContent = msg || ""; s.className = "status " + (kind || ""); }
 
   /* ---------- pratinjau halaman ---------- */
   function putThumb(cell, url, n) {
@@ -946,6 +956,11 @@ window.folioStart = function () {
   async function saveBlob(key, name, blob, type) {
     try {
       (LAST[key] = LAST[key] || []).push({ name: name, blob: blob, type: type });
+      if (CAP && CAP.Filesystem) {
+        var b64 = await blobToB64(blob);
+        await CAP.Filesystem.writeFile({ path: "Folio/" + name, data: b64, directory: "DOCUMENTS", recursive: true });
+        return true;
+      }
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url; a.download = name;
@@ -953,7 +968,7 @@ window.folioStart = function () {
       setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
       return true;
     } catch (e) {
-      status(key, "File tidak bisa diunduh. Coba lagi atau gunakan browser lain.", "err");
+      status(key, CAP ? "File tidak bisa disimpan. Coba tombol Bagikan." : "File tidak bisa diunduh. Coba lagi atau gunakan browser lain.", "err");
       return false;
     }
   }
@@ -1016,13 +1031,13 @@ window.folioStart = function () {
   function canShareFiles(files) {
     try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: files })); } catch (e) { return false; }
   }
-  var SHARE_OK = canShareFiles([new File([new Blob(["%PDF"])], "a.pdf", { type: "application/pdf" })]);
+  var SHARE_OK = !!(CAP && CAP.Share && CAP.Filesystem) || canShareFiles([new File([new Blob(["%PDF"])], "a.pdf", { type: "application/pdf" })]);
   function toFiles(list) { return list.map(function (f) { return new File([f.blob], f.name, { type: f.type || "application/pdf" }); }); }
   function resetShare(key) { LAST[key] = []; var b = $("#share-" + key); if (b) b.hidden = true; }
   function showShare(key) {
     var b = $("#share-" + key), list = LAST[key] || [];
     if (!b) return;
-    b.hidden = !(SHARE_OK && list.length && canShareFiles(toFiles(list)));
+    b.hidden = !(SHARE_OK && list.length && (CAP || canShareFiles(toFiles(list))));
     if (!b.hidden) b.textContent = list.length > 1 ? "Bagikan " + list.length + " file" : "Bagikan";
   }
   KEYS.forEach(function (key) {
@@ -1032,7 +1047,16 @@ window.folioStart = function () {
     st.parentNode.insertBefore(b, st.nextSibling);
     b.onclick = async function () {
       var list = LAST[key] || []; if (!list.length) return;
-      try { await navigator.share({ files: toFiles(list), title: list[0].name }); }
+      try {
+        if (CAP && CAP.Share && CAP.Filesystem) {
+          var uris = [];
+          for (var i = 0; i < list.length; i++) {
+            await CAP.Filesystem.writeFile({ path: "share/" + list[i].name, data: await blobToB64(list[i].blob), directory: "CACHE", recursive: true });
+            uris.push((await CAP.Filesystem.getUri({ path: "share/" + list[i].name, directory: "CACHE" })).uri);
+          }
+          await CAP.Share.share({ files: uris, title: list[0].name, dialogTitle: "Simpan atau bagikan" });
+        } else await navigator.share({ files: toFiles(list), title: list[0].name });
+      }
       catch (e) { if (!e || e.name !== "AbortError") status(key, "Tidak bisa membuka menu bagikan. File sudah ada di folder unduhan.", "err"); }
     };
   });
