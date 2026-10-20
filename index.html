@@ -62,7 +62,7 @@ header p { margin: 0 auto; color: var(--muted); max-width: 46ch; text-wrap: bala
 .privacy::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
 /* Pilihan alat */
-.tabs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.tabs { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
 .tab {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
   font: 500 13px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 12px;
@@ -222,6 +222,24 @@ input[type="text"], input[type="number"] { font-family: var(--font-mono); font-s
 .pk .bl { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: #667085; }
 .pk img.rot { transition: transform .2s; }
 
+/* Pindai: foto kertas */
+.row.sel { border-color: var(--accent); }
+.scn-nav { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.scn-nav span { min-width: 9.5em; text-align: center; font-size: 14px; font-weight: 500; }
+.scn-stage { position: relative; width: 100%; max-width: 560px; margin: 0 auto; line-height: 0; background: var(--surface-2); touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; min-height: 120px; }
+.scn-stage > canvas { display: block; width: 100%; height: auto; }
+.scn-stage.loading::after { content: "Memuat foto…"; position: absolute; inset: 0; display: grid; place-items: center; color: #667085; font-size: 14px; line-height: 1.4; }
+.scn-poly { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.scn-poly polygon { fill: rgba(54, 80, 224, .14); stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.scn-poly polygon.bad { fill: rgba(220, 38, 38, .16); stroke: #dc2626; }
+.scn-h { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; touch-action: none; cursor: grab; display: grid; place-items: center; z-index: 2; }
+.scn-h::after { content: ""; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0, 0, 0, .5); transition: transform .1s; }
+.scn-h.on::after { transform: scale(1.3); }
+.scn-h:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
+#scn-loupe { position: absolute; width: 96px; height: 96px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 16px rgba(0, 0, 0, .45); z-index: 5; pointer-events: none; background: #fff; }
+.scn-out { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; background: #fff; border: 1px solid var(--line); box-shadow: 0 4px 18px -6px rgba(26, 32, 51, .25); }
+#scn-work { display: flex; flex-direction: column; gap: 18px; }
+#scn-work[hidden] { display: none; }
 /* TTD: tanda tangan dan teks */
 .sg-padwrap { position: relative; background: #fff; border: 1.5px dashed var(--line); border-radius: 14px; overflow: hidden; }
 .sg-padwrap canvas { display: block; width: 100%; height: auto; aspect-ratio: 5 / 2; touch-action: none; cursor: crosshair; }
@@ -265,8 +283,8 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
   .row { gap: 12px; padding: 10px; }
   .row .thumb { width: 72px; height: 72px; }
   .thumb-cell.first { width: 80px; }
-  .tabs { grid-template-columns: repeat(5, 1fr); }
-  .tab { font-size: 12px; padding: 9px 2px; }
+  .tabs { grid-template-columns: repeat(6, 1fr); }
+  .tab { font-size: 11.5px; padding: 9px 1px; }
   .btn { flex: 1; }
   .v-body { padding: 12px; gap: 12px; }
 }
@@ -303,7 +321,47 @@ footer { text-align: center; color: var(--muted); font-size: 12px; }
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20h14M8 20v-3a4 4 0 0 1 8 0v3M12 13V8a3 3 0 1 0-3-3"/></svg>Cap</button>
     <button class="tab" role="tab" id="tab-sign" aria-controls="panel-sign" aria-selected="false" data-tab="sign" title="Tanda tangan dan teks">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17c3 0 4-9 6-9s0 9 3 9 2-5 4-5 1 3 3 3"/><path d="M3 21h18"/></svg>TTD</button>
+    <button class="tab" role="tab" id="tab-scan" aria-controls="panel-scan" aria-selected="false" data-tab="scan" title="Pindai foto kertas">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M4 12h16"/></svg>Pindai</button>
   </div>
+
+  <section class="panel" id="panel-scan" role="tabpanel" aria-labelledby="tab-scan" hidden>
+    <h2>Pindai foto kertas</h2>
+    <p class="lead">Foto kertas dari samping pun bisa jadi halaman yang lurus dan bersih. Tandai 4 sudut kertas, pilih filter, lalu simpan jadi PDF.</p>
+    <div class="step"><i>1</i>Pilih foto</div>
+    <label class="drop" data-drop="scan"><strong>Pilih foto atau seret ke sini</strong><span>Bisa lebih dari satu. Satu foto jadi satu halaman</span><input type="file" id="in-scan" accept="image/*" multiple></label>
+    <ul class="list" id="list-scan"></ul>
+    <div id="scn-work" hidden>
+      <div class="step"><i>2</i>Tandai 4 sudut kertas</div>
+      <span class="hint">Seret titik biru ke tiap sudut kertas. Kaca pembesar muncul di atas jari. Ketuk foto di daftar untuk berganti foto.</span>
+      <div class="scn-nav"><button class="icon-btn" id="scn-prev" type="button" aria-label="Foto sebelumnya">‹</button><span id="scn-lbl"></span><button class="icon-btn" id="scn-next" type="button" aria-label="Foto berikutnya">›</button></div>
+      <div class="scn-stage loading" id="scn-stage"><canvas id="scn-cv" width="4" height="3" aria-label="Foto kertas"></canvas><svg class="scn-poly" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon id="scn-poly" points=""/></svg><div id="scn-hs"></div><canvas id="scn-loupe" width="96" height="96" hidden aria-hidden="true"></canvas></div>
+      <div class="actions">
+        <button class="btn ghost" id="scn-rot" type="button">Putar ↻</button>
+        <button class="btn ghost" id="scn-full" type="button">Seluruh foto</button>
+        <button class="btn ghost" id="scn-reset" type="button">Atur ulang</button>
+      </div>
+      <div class="step"><i>3</i>Hasil dan filter</div>
+      <canvas class="scn-out" id="scn-out" width="4" height="3" aria-label="Pratinjau hasil"></canvas>
+      <span class="hint" id="scn-msg" aria-live="polite"></span>
+      <div class="seg" id="scn-filter" role="group" aria-label="Filter">
+        <button type="button" data-f="orig" aria-pressed="false">Asli</button><button type="button" data-f="doc" aria-pressed="true">Tajam</button><button type="button" data-f="gray" aria-pressed="false">Abu-abu</button><button type="button" data-f="bw" aria-pressed="false">Hitam-putih</button>
+      </div>
+      <div class="fields">
+        <div class="field"><label for="scn-bright">Kecerahan</label><input type="range" id="scn-bright" min="-50" max="50" step="1" value="0"></div>
+        <div class="field"><label for="scn-contrast">Kontras</label><input type="range" id="scn-contrast" min="-50" max="50" step="1" value="0"><span class="hint">Tidak berlaku untuk hitam-putih.</span></div>
+        <div class="field"><label for="scn-ratio">Bentuk halaman</label>
+          <select id="scn-ratio"><option value="auto">Otomatis dari sudut</option><option value="a4p">A4 potret</option><option value="a4l">A4 lanskap</option></select>
+          <span class="hint">Berlaku untuk semua foto.</span></div>
+      </div>
+    </div>
+    <div class="step"><i>4</i>Nama file dan unduh</div>
+    <div class="fields">
+      <div class="field"><label for="name-scan">Nama file</label><input type="text" id="name-scan" placeholder="pindai" autocomplete="off" spellcheck="false"><span class="hint">.pdf ditambahkan otomatis.</span></div>
+    </div>
+    <div class="actions"><button class="btn" id="go-scan" type="button">Buat PDF</button><button class="btn ghost" id="clear-scan" type="button">Kosongkan</button></div>
+    <div class="status" id="st-scan" role="status" aria-live="polite"></div>
+  </section>
 
   <section class="panel" id="panel-merge" role="tabpanel" aria-labelledby="tab-merge">
     <h2>Gabung PDF</h2>
@@ -651,8 +709,8 @@ window.folioStart = function () {
   }
   var PDFDocument = PDFLib.PDFDocument, degrees = PDFLib.degrees, StandardFonts = PDFLib.StandardFonts, rgb = PDFLib.rgb;
   var $ = function (s) { return document.querySelector(s); };
-  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg", "edit", "duplex", "stamp", "sign"];
-  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, edit: null, duplex: null, duplexB: null, stamp: null, sign: null, img: [], ranges: [{ from: "1", to: "2" }] };
+  var KEYS = ["merge", "split", "rotate", "compress", "img", "toimg", "edit", "duplex", "stamp", "sign", "scan"];
+  var S = { merge: [], split: null, rotate: null, compress: null, toimg: null, edit: null, duplex: null, duplexB: null, stamp: null, sign: null, scan: [], img: [], ranges: [{ from: "1", to: "2" }] };
   var uid = 0, busy = false, MAXT = 1;
   if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("lib/pdf.worker.min.mjs", document.baseURI).href;
 
@@ -1017,7 +1075,7 @@ window.folioStart = function () {
   function moveItem(arr, i, d) { var j = i + d; if (j < 0 || j >= arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
   /* geser urutan dengan jari atau mouse lewat pegangan ⋮⋮. Baris tidak dipindah di DOM saat digeser (hanya transform),
      jadi pointer tidak terlepas; urutan baru disimpan saat dilepas */
-  function attachDrag(handle, li, ul, arr) {
+  function attachDrag(handle, li, ul, arr, key) {
     handle.addEventListener("pointerdown", function (e) {
       if (e.button != null && e.button !== 0) return;
       e.preventDefault();
@@ -1054,7 +1112,7 @@ window.folioStart = function () {
         window.removeEventListener("pointermove", mv); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end);
         rows.forEach(function (r) { r.style.transform = ""; r.style.transition = ""; });
         li.classList.remove("dragging");
-        if (newIdx !== idx0) { var it = arr.splice(idx0, 1)[0]; arr.splice(newIdx, 0, it); status("img", ""); }
+        if (newIdx !== idx0) { var it = arr.splice(idx0, 1)[0]; arr.splice(newIdx, 0, it); status(key || "img", ""); }
         redraw();
       }
       window.addEventListener("pointermove", mv); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
@@ -1112,7 +1170,7 @@ window.folioStart = function () {
     $("#go-split").disabled = busy || !S.split;
     $("#go-rotate").disabled = busy || !S.rotate;
     $("#go-compress").disabled = busy || !S.compress;
-    updateEditUI(); renderDx(); updateStampUI(); updateSignUI();
+    updateEditUI(); renderDx(); updateStampUI(); updateSignUI(); updateScanUI();
     $("#go-toimg").disabled = busy || !S.toimg || !S.toimg.sel || !S.toimg.sel.size;
     $("#go-img").disabled = busy || !S.img.length;
     $("#prev-img").disabled = busy || !S.img.length;
@@ -1156,7 +1214,7 @@ window.folioStart = function () {
   function redraw() {
     renderRanges();
     renderList("merge", S.merge, "Belum ada file. Pilih minimal dua PDF.");
-    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick(); renderSingle("edit"); renderEdit(); renderSingle("duplex"); renderSingle("duplexb"); renderSingle("stamp"); renderSingle("sign"); renderSign();
+    renderSingle("split"); renderSingle("rotate"); renderSingle("compress"); renderSingle("toimg"); renderPick(); renderSingle("edit"); renderEdit(); renderSingle("duplex"); renderSingle("duplexb"); renderSingle("stamp"); renderSingle("sign"); renderSign(); renderScan();
     renderList("img", S.img, "Belum ada gambar. Pilih satu atau lebih gambar.");
     refresh();
   }
@@ -1205,14 +1263,14 @@ window.folioStart = function () {
     var input = $("#in-" + key), drop = document.querySelector("[data-drop=" + key + "]");
     input.addEventListener("change", function () {
       var files = Array.from(input.files); input.value = "";
-      if (key === "img") takeImages(files); else takePdfs(key, key === "merge" ? files : files.slice(0, 1));
+      if (key === "img") takeImages(files); else if (key === "scan") takeScan(files); else takePdfs(key, key === "merge" ? files : files.slice(0, 1));
     });
     drop.addEventListener("dragover", function (e) { e.preventDefault(); drop.classList.add("over"); });
     drop.addEventListener("dragleave", function () { drop.classList.remove("over"); });
     drop.addEventListener("drop", function (e) {
       e.preventDefault(); drop.classList.remove("over");
       var files = Array.from(e.dataTransfer.files);
-      if (key === "img") takeImages(files); else takePdfs(key, key === "merge" ? files : files.slice(0, 1));
+      if (key === "img") takeImages(files); else if (key === "scan") takeScan(files); else takePdfs(key, key === "merge" ? files : files.slice(0, 1));
     });
   });
   /* ---------- Dua sisi: gabung hasil pindai depan dan belakang ---------- */
@@ -2445,6 +2503,383 @@ window.folioStart = function () {
       }
     });
   });
+
+  /* ---------- Pindai: foto kertas -> halaman lurus ----------
+     Tiap foto punya 4 sudut (angka 0..1 terhadap lebar/tinggi foto, urutan: kiri atas, kanan atas, kanan bawah, kiri bawah).
+     Hanya foto yang sedang dibuka yang disimpan sebagai kanvas besar (it.cv), supaya memori HP aman. */
+  var SCN = { cur: null, shown: null, tk: 0, drag: null, filter: "doc", bright: 0, contrast: 0, ratio: "auto", raf: 0 };
+  var SCN_MAX = 2200, SCN_PV = 1400, SCN_OUT = 2200;
+  var SCN_NAMES = ["kiri atas", "kanan atas", "kanan bawah", "kiri bawah"];
+  var SCN_DEF = [[0.08, 0.08], [0.92, 0.08], [0.92, 0.92], [0.08, 0.92]];
+  function scnCopy(q) { return q.map(function (p) { return [p[0], p[1]]; }); }
+  function scnItem() { for (var i = 0; i < S.scan.length; i++) if (S.scan[i].id === SCN.cur) return S.scan[i]; return null; }
+  function scnIndex() { for (var i = 0; i < S.scan.length; i++) if (S.scan[i].id === SCN.cur) return i; return -1; }
+  function scnRot(cv) {
+    var o = document.createElement("canvas"); o.width = cv.height; o.height = cv.width;
+    var c = o.getContext("2d"); c.translate(o.width, 0); c.rotate(Math.PI / 2); c.drawImage(cv, 0, 0);
+    return o;
+  }
+  async function scnDecode(it) {
+    var buf = new Uint8Array(await it.file.arrayBuffer());
+    try {
+      var d = await decodeScaled(it.file, buf, SCN_MAX), cv = d.canvas;
+      for (var r = 0; r < it.rot; r++) cv = scnRot(cv);
+      return cv;
+    } catch (e) { throw new Error(friendlyErr(e, buf)); }
+  }
+  function scnPvc(it) {
+    if (it.pvc) return it.pvc;
+    var k = Math.min(1, SCN_PV / Math.max(it.cv.width, it.cv.height)), c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(it.cv.width * k)); c.height = Math.max(1, Math.round(it.cv.height * k));
+    var cx = c.getContext("2d"); cx.imageSmoothingQuality = "high"; cx.drawImage(it.cv, 0, 0, c.width, c.height);
+    return (it.pvc = c);
+  }
+  function scnThumb(cv) {
+    var k = Math.min(1, 160 / Math.max(cv.width, cv.height)), c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(cv.width * k)); c.height = Math.max(1, Math.round(cv.height * k));
+    c.getContext("2d").drawImage(cv, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.7);
+  }
+  /* segi empat harus cembung dan cukup luas */
+  function scnValid(q) {
+    var s = 0, area = 0, i;
+    for (i = 0; i < 4; i++) {
+      var a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4];
+      var cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+      if (Math.abs(cr) < 1e-6) return false;
+      if (!s) s = cr > 0 ? 1 : -1; else if ((cr > 0 ? 1 : -1) !== s) return false;
+      area += a[0] * b[1] - b[0] * a[1];
+    }
+    return Math.abs(area) / 2 > 0.01;
+  }
+  function scnOutSize(cvW, cvH, q, maxSide) {
+    var P = q.map(function (p) { return [p[0] * cvW, p[1] * cvH]; });
+    var dist = function (a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); };
+    var W = Math.max(dist(P[0], P[1]), dist(P[3], P[2])), H = Math.max(dist(P[0], P[3]), dist(P[1], P[2]));
+    if (SCN.ratio === "a4p") H = W * 1.4142; else if (SCN.ratio === "a4l") H = W / 1.4142;
+    var k = Math.min(1, maxSide / Math.max(W, H));
+    return { W: Math.max(16, Math.round(W * k)), H: Math.max(16, Math.round(H * k)) };
+  }
+  /* matriks perspektif: titik tujuan (persegi panjang hasil) -> titik di foto */
+  function scnH(d, s) {
+    var A = [], i, k;
+    for (i = 0; i < 4; i++) {
+      var x = d[i][0], y = d[i][1], u = s[i][0], v = s[i][1];
+      A.push([x, y, 1, 0, 0, 0, -x * u, -y * u, u]);
+      A.push([0, 0, 0, x, y, 1, -x * v, -y * v, v]);
+    }
+    for (var c = 0; c < 8; c++) {
+      var p = c;
+      for (i = c + 1; i < 8; i++) if (Math.abs(A[i][c]) > Math.abs(A[p][c])) p = i;
+      var t = A[c]; A[c] = A[p]; A[p] = t;
+      if (Math.abs(A[c][c]) < 1e-12) return null;
+      for (i = 0; i < 8; i++) if (i !== c) {
+        var f = A[i][c] / A[c][c];
+        if (f) for (k = c; k < 9; k++) A[i][k] -= f * A[c][k];
+      }
+    }
+    return A.map(function (r, j) { return r[8] / r[j]; });
+  }
+  /* luruskan: ambil piksel foto lewat matriks, interpolasi bilinear */
+  function scnWarp(srcCv, q, W, H) {
+    var sw = srcCv.width, sh = srcCv.height, sd = srcCv.getContext("2d").getImageData(0, 0, sw, sh).data;
+    var h = scnH([[0, 0], [W, 0], [W, H], [0, H]], q.map(function (p) { return [p[0] * sw, p[1] * sh]; }));
+    if (!h) return null;
+    var out = new ImageData(W, H), o = out.data, x, y, w1 = sw - 1, h1 = sh - 1;
+    for (y = 0; y < H; y++) {
+      var Y = y + 0.5, oi = y * W * 4;
+      for (x = 0; x < W; x++, oi += 4) {
+        var X = x + 0.5, z = h[6] * X + h[7] * Y + 1;
+        var u = (h[0] * X + h[1] * Y + h[2]) / z - 0.5, v = (h[3] * X + h[4] * Y + h[5]) / z - 0.5;
+        if (u < 0) u = 0; else if (u > w1) u = w1;
+        if (v < 0) v = 0; else if (v > h1) v = h1;
+        var x0 = u | 0, y0 = v | 0, x1 = x0 < w1 ? x0 + 1 : x0, y1 = y0 < h1 ? y0 + 1 : y0, fx = u - x0, fy = v - y0;
+        var a = (y0 * sw + x0) * 4, b = (y0 * sw + x1) * 4, c = (y1 * sw + x0) * 4, d = (y1 * sw + x1) * 4;
+        var w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+        o[oi] = sd[a] * w00 + sd[b] * w10 + sd[c] * w01 + sd[d] * w11;
+        o[oi + 1] = sd[a + 1] * w00 + sd[b + 1] * w10 + sd[c + 1] * w01 + sd[d + 1] * w11;
+        o[oi + 2] = sd[a + 2] * w00 + sd[b + 2] * w10 + sd[c + 2] * w01 + sd[d + 2] * w11;
+        o[oi + 3] = 255;
+      }
+    }
+    return out;
+  }
+  /* filter: orig = hanya kecerahan/kontras; doc = hapus bayangan, kertas putih, teks lebih tajam (tetap berwarna);
+     gray = sama tapi abu-abu; bw = hitam-putih dengan ambang yang menyesuaikan area (tahan bayangan) */
+  function scnFilter(img, mode, bright, contrast) {
+    var W = img.width, H = img.height, p = img.data, n = W * H, i, x, y;
+    var k = Math.pow(2, contrast / 50), add = bright * 1.2;
+    if (mode === "orig") {
+      var lut = new Uint8ClampedArray(256);
+      for (i = 0; i < 256; i++) lut[i] = (i - 128) * k + 128 + add;
+      for (i = 0; i < p.length; i += 4) { p[i] = lut[p[i]]; p[i + 1] = lut[p[i + 1]]; p[i + 2] = lut[p[i + 2]]; }
+      return;
+    }
+    var W1 = W + 1, I = new Uint32Array(W1 * (H + 1)), L = new Uint8Array(n);
+    for (y = 0; y < H; y++) {
+      var row = 0;
+      for (x = 0; x < W; x++) {
+        var j = y * W + x, q = j * 4, l = (p[q] * 77 + p[q + 1] * 150 + p[q + 2] * 29) >> 8;
+        L[j] = l; row += l; I[(y + 1) * W1 + x + 1] = I[y * W1 + x + 1] + row;
+      }
+    }
+    var mean = function (x, y, r) {
+      var x0 = x - r < 0 ? 0 : x - r, x1 = x + r + 1 > W ? W : x + r + 1, y0 = y - r < 0 ? 0 : y - r, y1 = y + r + 1 > H ? H : y + r + 1;
+      return (I[y1 * W1 + x1] - I[y0 * W1 + x1] - I[y1 * W1 + x0] + I[y0 * W1 + x0]) / ((x1 - x0) * (y1 - y0));
+    };
+    var m0 = Math.min(W, H);
+    if (mode === "bw") {
+      var r = Math.max(8, Math.round(m0 / 24)), t = Math.min(0.97, Math.max(0.75, 0.88 + bright * 0.0018));
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+        var jj = y * W + x, qq = jj * 4, v = (L[jj] < mean(x, y, r) * t || L[jj] < 60) ? 0 : 255;
+        p[qq] = p[qq + 1] = p[qq + 2] = v;
+      }
+      return;
+    }
+    var rb = Math.max(12, Math.round(m0 / 8)), rs = Math.max(1, Math.round(m0 / 600)), gray = mode === "gray";
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      var j2 = y * W + x, q2 = j2 * 4, g = 255 / (Math.max(mean(x, y, rb), 30) * 0.96), d = (L[j2] - mean(x, y, rs)) * 0.8, v2;
+      if (gray) { v2 = ((L[j2] + d) * g - 128) * k + 128 + add; p[q2] = p[q2 + 1] = p[q2 + 2] = v2; }
+      else for (var c = 0; c < 3; c++) p[q2 + c] = ((p[q2 + c] + d) * g - 128) * k + 128 + add;
+    }
+  }
+  function scnRender(cv, q, maxSide) {
+    var sz = scnOutSize(cv.width, cv.height, q, maxSide), img = scnWarp(cv, q, sz.W, sz.H);
+    if (!img) throw new Error("Sudut tidak membentuk segi empat. Geser titiknya.");
+    scnFilter(img, SCN.filter, SCN.bright, SCN.contrast);
+    return img;
+  }
+
+  /* ---- pilih foto ---- */
+  async function takeScan(files) {
+    var n = 0, list = Array.from(files), i;
+    for (i = 0; i < list.length; i++) {
+      var f = list[i], buf = null;
+      if (!/^image\//.test(f.type)) { status("scan", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); continue; }
+      status("scan", "Membaca foto " + (i + 1) + " dari " + list.length + "…", "busy");
+      try {
+        buf = new Uint8Array(await f.arrayBuffer());
+        var d = await decodeScaled(f, buf, 160);
+        S.scan.push({ id: ++uid, name: f.name, file: f, size: f.size, thumb: d.canvas.toDataURL("image/jpeg", 0.7), rot: 0, quad: scnCopy(SCN_DEF), set: false, cv: null, pvc: null });
+        n++;
+      } catch (e) { status("scan", "\"" + f.name + "\" dilewati: " + friendlyErr(e, buf || new Uint8Array(0)) + ".", "err"); }
+    }
+    if (n && !$("#st-scan").classList.contains("err")) status("scan", "");
+    if (n && !scnItem()) SCN.cur = S.scan[S.scan.length - n].id;
+    redraw();
+  }
+  function scnSelect(id) {
+    var old = scnItem();
+    if (old && old.id !== id) { old.cv = null; old.pvc = null; }
+    SCN.cur = id; redraw();
+  }
+  function renderScan() {
+    var ul = $("#list-scan"); ul.textContent = "";
+    if (!S.scan.length) ul.appendChild(el("li", "empty", "Belum ada foto. Pilih satu atau lebih foto kertas."));
+    S.scan.forEach(function (it, i) {
+      var li = el("li", "row" + (it.id === SCN.cur ? " sel" : "")); li.dataset.id = it.id;
+      var dh = el("div", "drag-h", "⋮⋮"); dh.setAttribute("aria-hidden", "true"); dh.title = "Tahan dan geser untuk mengubah urutan";
+      attachDrag(dh, li, ul, S.scan, "scan"); li.appendChild(dh);
+      var im = el("img", "thumb"); im.src = it.thumb; im.alt = ""; li.appendChild(im);
+      var info = el("div", "info"), nm = el("div", "name", it.name);
+      if (it.id === SCN.cur) nm.appendChild(el("span", "badge", "dibuka"));
+      info.appendChild(nm); info.appendChild(el("div", "meta", it.set ? "Sudut sudah ditandai" : "Sudut belum ditandai · " + fmtSize(it.size)));
+      li.appendChild(info);
+      li.style.cursor = "pointer";
+      li.addEventListener("click", function (e) { if (e.target.closest("button, .drag-h")) return; if (it.id !== SCN.cur) scnSelect(it.id); });
+      var up = el("button", "icon-btn mv", "↑"); up.type = "button"; up.setAttribute("aria-label", "Naikkan " + it.name); up.disabled = i === 0;
+      var dn = el("button", "icon-btn mv", "↓"); dn.type = "button"; dn.setAttribute("aria-label", "Turunkan " + it.name); dn.disabled = i === S.scan.length - 1;
+      var rm = el("button", "icon-btn", "✕"); rm.type = "button"; rm.setAttribute("aria-label", "Hapus " + it.name);
+      up.onclick = function () { moveItem(S.scan, i, -1); status("scan", ""); redraw(); };
+      dn.onclick = function () { moveItem(S.scan, i, 1); status("scan", ""); redraw(); };
+      rm.onclick = function () {
+        S.scan.splice(i, 1); status("scan", "");
+        if (it.id === SCN.cur) { var nx = S.scan[Math.min(i, S.scan.length - 1)]; SCN.cur = nx ? nx.id : null; }
+        redraw();
+      };
+      li.appendChild(up); li.appendChild(dn); li.appendChild(rm);
+      ul.appendChild(li);
+    });
+    if (SCN.shown !== SCN.cur) { SCN.shown = SCN.cur; scnShow(); }
+    else scnLabel();
+  }
+  function scnLabel() {
+    var i = scnIndex(), n = S.scan.length;
+    $("#scn-lbl").textContent = i < 0 ? "" : "Foto " + (i + 1) + " dari " + n;
+    $("#scn-prev").disabled = busy || i <= 0; $("#scn-next").disabled = busy || i < 0 || i >= n - 1;
+  }
+  function updateScanUI() {
+    $("#go-scan").disabled = busy || !S.scan.length;
+    $("#clear-scan").disabled = busy || !S.scan.length;
+    $("#scn-contrast").disabled = SCN.filter === "bw";
+    ["scn-rot", "scn-full", "scn-reset"].forEach(function (id) { $("#" + id).disabled = busy || !scnItem(); });
+    scnLabel();
+  }
+
+  /* ---- layar penandaan sudut ---- */
+  var scnHs = [];
+  (function () {
+    var box = $("#scn-hs");
+    SCN_NAMES.forEach(function (nm, i) {
+      var h = el("div", "scn-h"); h.tabIndex = 0; h.setAttribute("role", "slider"); h.setAttribute("aria-label", "Sudut " + nm);
+      box.appendChild(h); scnHs.push(h);
+      var dx = 0, dy = 0;
+      h.addEventListener("pointerdown", function (e) {
+        var it = scnItem(); if (!it || busy) return;
+        e.preventDefault(); try { h.setPointerCapture(e.pointerId); } catch (x) {}
+        var r = $("#scn-stage").getBoundingClientRect();
+        dx = e.clientX - (r.left + it.quad[i][0] * r.width); dy = e.clientY - (r.top + it.quad[i][1] * r.height);
+        SCN.drag = i; h.classList.add("on"); scnLoupe(i);
+      });
+      h.addEventListener("pointermove", function (e) {
+        var it = scnItem(); if (SCN.drag !== i || !it) return;
+        var r = $("#scn-stage").getBoundingClientRect();
+        it.quad[i] = [Math.min(1, Math.max(0, (e.clientX - dx - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - dy - r.top) / r.height))];
+        scnPos(); scnLoupe(i);
+      });
+      var end = function () {
+        if (SCN.drag !== i) return;
+        SCN.drag = null; h.classList.remove("on"); $("#scn-loupe").hidden = true;
+        var it = scnItem(); if (it) { it.set = true; scnQuadChanged(); }
+      };
+      h.addEventListener("pointerup", end); h.addEventListener("pointercancel", end);
+      h.addEventListener("keydown", function (e) {
+        var it = scnItem(); if (!it) return;
+        var st = e.shiftKey ? 0.02 : 0.005, mx = e.key === "ArrowLeft" ? -st : e.key === "ArrowRight" ? st : 0, my = e.key === "ArrowUp" ? -st : e.key === "ArrowDown" ? st : 0;
+        if (!mx && !my) return;
+        e.preventDefault();
+        it.quad[i] = [Math.min(1, Math.max(0, it.quad[i][0] + mx)), Math.min(1, Math.max(0, it.quad[i][1] + my))];
+        it.set = true; scnPos(); scnQuadChanged();
+      });
+    });
+  })();
+  function scnQuadChanged() {
+    var it = scnItem(); if (!it) return;
+    scnPos(); schedulePreview();
+    var li = $("#list-scan").querySelector('[data-id="' + it.id + '"] .meta'); if (li) li.textContent = "Sudut sudah ditandai";
+  }
+  function scnPos() {
+    var it = scnItem(); if (!it) return;
+    scnHs.forEach(function (h, i) { h.style.left = it.quad[i][0] * 100 + "%"; h.style.top = it.quad[i][1] * 100 + "%"; });
+    $("#scn-poly").setAttribute("points", it.quad.map(function (p) { return (p[0] * 100).toFixed(2) + "," + (p[1] * 100).toFixed(2); }).join(" "));
+    $("#scn-poly").classList.toggle("bad", !scnValid(it.quad));
+  }
+  /* kaca pembesar di atas jari */
+  function scnLoupe(i) {
+    var it = scnItem(), lp = $("#scn-loupe"), st = $("#scn-stage"); if (!it || !it.cv) return;
+    var r = st.getBoundingClientRect(), p = it.quad[i], cx = lp.getContext("2d"), S0 = 96;
+    var k = it.cv.width / r.width, side = 34 * k, sx = p[0] * it.cv.width - side / 2, sy = p[1] * it.cv.height - side / 2;
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, S0, S0);
+    cx.drawImage(it.cv, sx, sy, side, side, 0, 0, S0, S0);
+    cx.strokeStyle = "rgba(54,80,224,.9)"; cx.lineWidth = 1.5; cx.beginPath();
+    cx.moveTo(S0 / 2, 0); cx.lineTo(S0 / 2, S0); cx.moveTo(0, S0 / 2); cx.lineTo(S0, S0 / 2); cx.stroke();
+    var left = Math.min(r.width - S0, Math.max(0, p[0] * r.width - S0 / 2)), top = p[1] * r.height - S0 - 44;
+    if (top < -S0 * 0.6) top = p[1] * r.height + 44;
+    lp.style.left = left + "px"; lp.style.top = top + "px"; lp.hidden = false;
+  }
+  async function scnShow() {
+    var it = scnItem(), tk = ++SCN.tk, work = $("#scn-work");
+    work.hidden = !it; $("#scn-loupe").hidden = true;
+    if (!it) { updateScanUI(); return; }
+    scnLabel();
+    if (!it.cv) {
+      $("#scn-stage").classList.add("loading");
+      try { it.cv = await scnDecode(it); }
+      catch (e) { if (tk === SCN.tk) status("scan", "\"" + it.name + "\": " + (e.message || "gagal dibaca") + ".", "err"); return; }
+      if (tk !== SCN.tk || scnItem() !== it) { it.cv = null; return; }
+    }
+    $("#scn-stage").classList.remove("loading");
+    var pv = scnPvc(it), c = $("#scn-cv");
+    c.width = pv.width; c.height = pv.height; c.getContext("2d").drawImage(pv, 0, 0);
+    scnPos(); scnPreview(); updateScanUI();
+  }
+  function schedulePreview() {
+    if (SCN.raf) return;
+    SCN.raf = requestAnimationFrame(function () { SCN.raf = 0; scnPreview(); });
+  }
+  function scnPreview() {
+    var it = scnItem(), out = $("#scn-out"), msg = $("#scn-msg");
+    if (!it || !it.cv) return;
+    if (!scnValid(it.quad)) { msg.textContent = "Sudut tidak membentuk segi empat. Geser titik biru sampai garisnya tidak bersilang."; msg.className = "hint bad"; return; }
+    msg.textContent = it.set ? "" : "Titik masih di posisi awal. Geser ke 4 sudut kertas."; msg.className = "hint";
+    try {
+      var pv = scnPvc(it), img = scnRender(pv, it.quad, 640);
+      out.width = img.width; out.height = img.height; out.getContext("2d").putImageData(img, 0, 0);
+    } catch (e) { msg.textContent = e.message; msg.className = "hint bad"; }
+  }
+  function scnSavePref() { try { localStorage.setItem("folio-pindai", JSON.stringify({ f: SCN.filter, b: SCN.bright, c: SCN.contrast, r: SCN.ratio })); } catch (e) {} }
+  function scnSync() {
+    document.querySelectorAll("#scn-filter button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.f === SCN.filter ? "true" : "false"); });
+    $("#scn-bright").value = SCN.bright; $("#scn-contrast").value = SCN.contrast; $("#scn-ratio").value = SCN.ratio;
+    $("#scn-contrast").disabled = SCN.filter === "bw";
+  }
+  try {
+    var scnSaved = JSON.parse(localStorage.getItem("folio-pindai") || "null");
+    if (scnSaved) {
+      if (/^(orig|doc|gray|bw)$/.test(scnSaved.f)) SCN.filter = scnSaved.f;
+      if (isFinite(scnSaved.b)) SCN.bright = Math.max(-50, Math.min(50, +scnSaved.b));
+      if (isFinite(scnSaved.c)) SCN.contrast = Math.max(-50, Math.min(50, +scnSaved.c));
+      if (/^(auto|a4p|a4l)$/.test(scnSaved.r)) SCN.ratio = scnSaved.r;
+    }
+  } catch (e) {}
+  scnSync();
+  document.querySelectorAll("#scn-filter button").forEach(function (b) {
+    b.onclick = function () { SCN.filter = b.dataset.f; scnSync(); scnSavePref(); status("scan", ""); schedulePreview(); };
+  });
+  $("#scn-bright").oninput = function () { SCN.bright = +this.value; scnSavePref(); schedulePreview(); };
+  $("#scn-contrast").oninput = function () { SCN.contrast = +this.value; scnSavePref(); schedulePreview(); };
+  $("#scn-ratio").onchange = function () { SCN.ratio = this.value; scnSavePref(); schedulePreview(); };
+  $("#scn-prev").onclick = function () { var i = scnIndex(); if (i > 0) scnSelect(S.scan[i - 1].id); };
+  $("#scn-next").onclick = function () { var i = scnIndex(); if (i >= 0 && i < S.scan.length - 1) scnSelect(S.scan[i + 1].id); };
+  $("#scn-full").onclick = function () { var it = scnItem(); if (!it) return; it.quad = [[0, 0], [1, 0], [1, 1], [0, 1]]; it.set = true; scnQuadChanged(); };
+  $("#scn-reset").onclick = function () { var it = scnItem(); if (!it) return; it.quad = scnCopy(SCN_DEF); it.set = false; scnPos(); schedulePreview(); renderScan(); };
+  $("#scn-rot").onclick = function () {
+    var it = scnItem(); if (!it || !it.cv) return;
+    var m = function (p) { return [1 - p[1], p[0]]; }, q = it.quad;
+    it.quad = [m(q[3]), m(q[0]), m(q[1]), m(q[2])];
+    it.rot = (it.rot + 1) % 4; it.cv = scnRot(it.cv); it.pvc = null; it.thumb = scnThumb(it.cv);
+    var li = $("#list-scan").querySelector('[data-id="' + it.id + '"] img.thumb'); if (li) li.src = it.thumb;
+    var pv = scnPvc(it), c = $("#scn-cv"); c.width = pv.width; c.height = pv.height; c.getContext("2d").drawImage(pv, 0, 0);
+    scnPos(); scnPreview();
+  };
+  $("#clear-scan").onclick = function () { S.scan = []; SCN.cur = null; status("scan", ""); redraw(); };
+
+  /* ---- buat PDF ---- */
+  async function buildScanPdf() {
+    var doc = await PDFDocument.create(), n = S.scan.length, failed = [], pages = 0;
+    for (var i = 0; i < n; i++) {
+      var it = S.scan[i], own = false;
+      step("scan", i + 1, n, "Memproses foto " + (i + 1) + " dari " + n + "…");
+      await new Promise(function (r) { setTimeout(r, 0); });
+      try {
+        var cv = it.cv;
+        if (!cv) { cv = await scnDecode(it); own = true; }
+        if (!scnValid(it.quad)) throw new Error("sudut tidak membentuk segi empat");
+        var img = scnRender(cv, it.quad, SCN_OUT), tmp = document.createElement("canvas");
+        tmp.width = img.width; tmp.height = img.height; tmp.getContext("2d").putImageData(img, 0, 0);
+        var bw = SCN.filter === "bw", bytes = await canvasBytes(tmp, bw ? "image/png" : "image/jpeg", 0.85);
+        var emb = bw ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+        var wide = img.width >= img.height, pw = wide ? 841.89 : 595.28, ph = pw * img.height / img.width;
+        if (SCN.ratio === "a4p") { pw = 595.28; ph = 841.89; } else if (SCN.ratio === "a4l") { pw = 841.89; ph = 595.28; }
+        doc.addPage([pw, ph]).drawImage(emb, { x: 0, y: 0, width: pw, height: ph });
+        pages++; tmp.width = tmp.height = 1;
+        if (own) { cv.width = cv.height = 1; }
+      } catch (e) {
+        if (e && e.name === "Cancel") throw e;
+        failed.push({ name: it.name, msg: e && e.message ? e.message : "gagal" });
+      }
+    }
+    checkCancel();
+    if (!pages) throw new Error("Tidak ada foto yang bisa diproses. " + failed[0].name + ": " + failed[0].msg + ".");
+    return { bytes: await doc.save(), pages: pages, failed: failed };
+  }
+  $("#go-scan").onclick = function () {
+    run("scan", async function () {
+      var r = await buildScanPdf(), name = outName("scan", "pindai") + ".pdf";
+      var ok = await saveFile("scan", name, r.bytes, r.failed.length > 0);
+      if (ok && r.failed.length) status("scan", "Selesai. " + name + " (" + fmtSize(r.bytes.length) + ") diunduh, tetapi " + r.failed.length + " foto dilewati: " + r.failed.map(function (f) { return f.name + " (" + f.msg + ")"; }).join(", ") + ".", "err");
+    });
+  };
 
   /* ---------- contoh awal ---------- */
   async function makeSample(title, n) {
