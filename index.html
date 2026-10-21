@@ -1280,11 +1280,13 @@ window.folioStart = function () {
   }
   async function takeImages(files) {
     var n = 0, skipped = 0, list = Array.from(files), i;
+    var pre = prefetchPhotos(list, function (x) { return /^image\//.test(x.type); });
     for (i = 0; i < list.length; i++) {
       var f = list[i];
-      if (!/^image\//.test(f.type)) { status("img", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); skipped++; continue; }
+      if (!pre[i]) { status("img", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); skipped++; continue; }
       try {
-        var kept = await keepPhoto(f);
+        var r0 = await pre[i]; if (r0.e) throw r0.e;
+        var kept = r0.v;
         S.img.push({ id: ++uid, name: f.name, file: kept.file, size: f.size, url: URL.createObjectURL(kept.file) }); n++;
       } catch (e) { status("img", "\"" + f.name + "\" dilewati: " + friendlyErr(e, new Uint8Array(0)) + ".", "err"); skipped++; }
     }
@@ -2347,6 +2349,16 @@ window.folioStart = function () {
     var type = f.type || (sniffFormat(buf) === "HEIC" ? "image/heic" : "");
     return { buf: buf, file: new File([buf], f.name, { type: type }) };
   }
+  /* Android mencabut izin baca file pilihan beberapa saat setelah dipilih. Jadi semua foto dibaca SEKALIGUS di awal
+     (paralel, dengan satu kali coba ulang), baru diproses satu per satu. Hasilnya: {v} atau {e} per foto */
+  function prefetchPhotos(list, ok) {
+    return list.map(function (f) {
+      if (!ok(f)) return null;
+      var run = function () { return keepPhoto(f); };
+      return run().catch(function () { return new Promise(function (r) { setTimeout(r, 150); }).then(run); })
+        .then(function (v) { return { v: v }; }, function (e) { return { e: e }; });
+    });
+  }
   function friendlyErr(e, buf) {
     if (isReadErr(e) || (e && e.message === READ_MSG)) return READ_MSG;
     var f = sniffFormat(buf);
@@ -2736,12 +2748,14 @@ window.folioStart = function () {
   /* ---- pilih foto ---- */
   async function takeScan(files) {
     var n = 0, list = Array.from(files), i;
+    var pre = prefetchPhotos(list, function (x) { return /^image\//.test(x.type) || /\.(heic|heif)$/i.test(x.name); });
     for (i = 0; i < list.length; i++) {
       var f = list[i], buf = null;
-      if (!/^image\//.test(f.type) && !/\.(heic|heif)$/i.test(f.name)) { status("scan", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); continue; }
+      if (!pre[i]) { status("scan", "\"" + f.name + "\" bukan gambar dan dilewati.", "err"); continue; }
       status("scan", "Membaca foto " + (i + 1) + " dari " + list.length + "…", "busy");
       try {
-        var kept = await keepPhoto(f); buf = kept.buf;
+        var r0 = await pre[i]; if (r0.e) throw r0.e;
+        var kept = r0.v; buf = kept.buf;
         var d = await decodeScaled(kept.file, buf, 160);
         S.scan.push({ id: ++uid, name: f.name, file: kept.file, size: f.size, thumb: d.canvas.toDataURL("image/jpeg", 0.7), rot: 0, quad: scnCopy(SCN_DEF), set: false, cv: null, pvc: null });
         n++;
